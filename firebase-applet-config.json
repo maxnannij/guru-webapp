@@ -1,12 +1,12 @@
 {
-  "projectId": "calle-484912",
-  "appId": "1:942803553425:web:9cc090c71575ba0b28c330",
-  "apiKey": "AIzaSyBbwlEQH_vLp8zLBJ1zgnBlJVkFRJbihHg",
-  "authDomain": "calle-484912.firebaseapp.com",
-  "firestoreDatabaseId": "ai-studio-ironboxgym-433d9b27-7c1b-4d2b-ac2d-9994c2b98304",
-  "storageBucket": "calle-484912.firebasestorage.app",
-  "messagingSenderId": "942803553425",
+  "projectId": "guru-box",
+  "appId": "1:715480567560:web:7892ecf69ead54fee026bd",
+  "apiKey": "AIzaSyCkzEW926si3vUsL10tDcTLwetkQDPpcQU",
+  "authDomain": "guru-box.firebaseapp.com",
+  "firestoreDatabaseId": "(default)",
+  "storageBucket": "guru-box.firebasestorage.app",
+  "messagingSenderId": "715480567560",
   "measurementId": "",
-  "oAuthClientId": "942803553425-663upi1hn9ll29b97qvsa85og5nmqarj.apps.googleusercontent.com",
+  "oAuthClientId": "",
   "recaptchaSiteKey": ""
 }

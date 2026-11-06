@@ -41,7 +41,7 @@ export default function App() {
     };
   }, []);
 
-  // Live sync: when Melina assigns tokens, Maxi sees them without reloading
+  // Live sync: tokens assigned by owners appear on athlete sessions
   useEffect(() => {
     if (!currentUser?.uid) return;
     const unsub = gymService.subscribeToUser(currentUser.uid, (profile) => {
@@ -119,7 +119,7 @@ export default function App() {
       <Navbar
         currentUser={currentUser}
         activeView={activeView}
-        onChangeView={setActiveView}
+        setActiveView={setActiveView}
         unreadCount={unreadCount}
         onOpenNotifications={() => setIsNotificationsOpen(true)}
         onLogout={handleLogout}
@@ -136,7 +136,7 @@ export default function App() {
         {activeView === 'wod' && (
           <WodView key={`wod_${refreshKey}`} currentUser={currentUser} />
         )}
-        {activeView === 'bookings' && (
+        {activeView === 'my_bookings' && (
           <MyBookingsView
             key={`bookings_${refreshKey}`}
             currentUser={currentUser}

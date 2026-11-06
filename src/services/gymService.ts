@@ -226,12 +226,7 @@ class GymService {
 
   async refreshSharedData(): Promise<void> {
     try {
-      const [bookSnap, cancelSnap, wodSnap] = await Promise.all([
-        getDocs(collection(db, 'bookings')),
-        getDocs(collection(db, 'cancelledSlots')),
-        getDocs(collection(db, 'wods')),
-      ]);
-
+      const bookSnap = await getDocs(collection(db, 'bookings'));
       const remoteBookings: Booking[] = [];
       bookSnap.forEach(d => {
         const data = d.data() as Booking;
@@ -241,24 +236,34 @@ class GymService {
       this.bookings.forEach(b => byId.set(b.id, b));
       remoteBookings.forEach(b => byId.set(b.id, b));
       this.bookings = Array.from(byId.values());
+    } catch (error) {
+      console.warn('refreshSharedData bookings notice:', error);
+    }
 
+    try {
+      const cancelSnap = await getDocs(collection(db, 'cancelledSlots'));
       const remoteCancelled: CancelledSlot[] = [];
       cancelSnap.forEach(d => {
         const data = d.data() as CancelledSlot;
         if (data) remoteCancelled.push({ ...data, id: data.id || d.id });
       });
       this.cancelledSlots = remoteCancelled;
+    } catch (error) {
+      console.warn('refreshSharedData cancelledSlots notice:', error);
+    }
 
+    try {
+      const wodSnap = await getDocs(collection(db, 'wods'));
       wodSnap.forEach(d => {
         const data = d.data() as WOD;
         const dateKey = (data && data.date) || d.id;
         if (dateKey) this.wods[dateKey] = { ...(data as WOD), date: dateKey };
       });
-
-      this.persistState();
     } catch (error) {
-      console.warn('refreshSharedData notice:', error);
+      console.warn('refreshSharedData wods notice:', error);
     }
+
+    this.persistState();
   }
 
   private ownerEmailForIdentifier(id: string): { email: string; password: string; seed: UserProfile } | null {

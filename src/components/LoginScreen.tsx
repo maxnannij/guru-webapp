@@ -134,33 +134,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
             </a>
           </div>
 
-          {!isRegister && (
-            <div className="bg-slate-950/70 border border-slate-800 rounded-2xl p-3.5 space-y-2.5">
-              <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1">
-                <Sparkles className="w-3.5 h-3.5" /> Acceso para Dueños
-              </span>
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <button type="button" onClick={() => handleOwnerSelect('melina')} className={`p-2.5 rounded-xl border text-left ${
-                  identifier === 'melina' ? 'bg-emerald-500/20 border-emerald-400' : 'bg-emerald-950/30 border-emerald-500/30'
-                }`}>
-                  <span className="text-[10px] text-emerald-400 uppercase font-bold">Dueña</span>
-                  <span className="text-sm font-black text-white block">Melina</span>
-                  <span className="text-[10px] text-slate-400 font-mono">meliguru</span>
-                </button>
-                <button type="button" onClick={() => handleOwnerSelect('alexis')} className={`p-2.5 rounded-xl border text-left ${
-                  identifier === 'alexis' ? 'bg-emerald-500/20 border-emerald-400' : 'bg-emerald-950/30 border-emerald-500/30'
-                }`}>
-                  <span className="text-[10px] text-emerald-400 uppercase font-bold">Dueño</span>
-                  <span className="text-sm font-black text-white block">Alexis</span>
-                  <span className="text-[10px] text-slate-400 font-mono">alexguru</span>
-                </button>
-              </div>
-              <button type="button" onClick={() => handleBiometricAuth()} disabled={biometricScanning}
-                className="w-full py-2.5 rounded-xl bg-slate-900 text-emerald-300 text-xs font-bold border border-emerald-500/40 flex items-center justify-center gap-2">
-                <Fingerprint className="w-4 h-4" /> Ingresar con Biometría
-              </button>
-            </div>
-          )}
 
           {error && (
             <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2">

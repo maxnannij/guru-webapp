@@ -44,6 +44,26 @@ export default function App() {
     };
   }, []);
 
+  // Sync tokens / profile in real time from Firestore (owners assign tokens → athlete sees them live)
+  useEffect(() => {
+    if (!currentUser?.uid) return;
+    const unsub = gymService.subscribeToUser(currentUser.uid, (profile) => {
+      setCurrentUser(prev => {
+        if (!prev || prev.uid !== profile.uid) return profile;
+        if (
+          prev.tokens === profile.tokens &&
+          prev.displayName === profile.displayName &&
+          prev.role === profile.role
+        ) {
+          return prev;
+        }
+        return { ...prev, ...profile };
+      });
+      setRefreshKey(k => k + 1);
+    });
+    return () => unsub();
+  }, [currentUser?.uid]);
+
   const triggerRefresh = () => {
     setCurrentUser(gymService.getCurrentUser());
     setRefreshKey(k => k + 1);
@@ -74,26 +94,23 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-emerald-500 selection:text-slate-950">
-      {/* Offline Alert Banner */}
       {!isOnline && (
-        <div className="bg-amber-600 text-slate-950 text-xs font-bold py-1.5 px-4 text-center flex items-center justify-center gap-2">
-          <WifiOff className="w-4 h-4" />
-          <span>Modo Sin Conexión — La aplicación sigue funcionando con datos en caché de Gurú Box.</span>
+        <div className="bg-amber-500/20 border-b border-amber-500/40 text-amber-200 text-xs text-center py-2 flex items-center justify-center gap-2">
+          <WifiOff className="w-3.5 h-3.5" />
+          Sin conexión — algunos datos pueden no sincronizarse.
         </div>
       )}
 
-      {/* Main Top Navigation */}
       <Navbar
-        activeView={activeView}
-        setActiveView={setActiveView}
         currentUser={currentUser}
-        unreadNotificationsCount={unreadCount}
+        activeView={activeView}
+        onChangeView={setActiveView}
+        unreadCount={unreadCount}
         onOpenNotifications={() => setIsNotificationsOpen(true)}
         onLogout={handleLogout}
       />
 
-      {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8">
+      <main className="flex-1 w-full max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
         {activeView === 'scheduler' && (
           <ShiftScheduler
             key={`sched_${refreshKey}`}
@@ -101,16 +118,13 @@ export default function App() {
             onBookingChanged={triggerRefresh}
           />
         )}
-
         {activeView === 'wod' && (
           <WodView
             key={`wod_${refreshKey}`}
             currentUser={currentUser}
-            onOpenOwnerPanel={() => setActiveView('owner_admin')}
           />
         )}
-
-        {activeView === 'my_bookings' && (
+        {activeView === 'bookings' && (
           <MyBookingsView
             key={`bookings_${refreshKey}`}
             currentUser={currentUser}
@@ -118,8 +132,7 @@ export default function App() {
             onOpenSchedule={() => setActiveView('scheduler')}
           />
         )}
-
-        {activeView === 'owner_admin' && (
+        {activeView === 'owner_admin' && currentUser.role === 'owner' && (
           <OwnerAdminPanel
             key={`admin_${refreshKey}`}
             currentUser={currentUser}
@@ -128,9 +141,8 @@ export default function App() {
         )}
       </main>
 
-      {/* Clean Footer with Official Address: Roma 2607, Caseros */}
-      <footer className="border-t border-slate-800/80 bg-slate-950/90 text-xs text-slate-400 py-8 px-4 sm:px-6 lg:px-8 mt-auto">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
+      <footer className="border-t border-slate-800/80 bg-slate-950/80 py-6 px-4 mt-auto">
+        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-3">
             <img
               src="/assets/aistudio/image_e8128fe0.png"
@@ -177,7 +189,6 @@ export default function App() {
         </div>
       </footer>
 
-      {/* Notification Center Modal */}
       <NotificationModal
         isOpen={isNotificationsOpen}
         onClose={() => setIsNotificationsOpen(false)}

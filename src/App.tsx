@@ -23,10 +23,7 @@ export default function App() {
   );
   const [refreshKey, setRefreshKey] = useState(0);
 
-  // Modals
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
-
-  // Offline detection
   const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
 
   useEffect(() => {
@@ -44,7 +41,7 @@ export default function App() {
     };
   }, []);
 
-  // Sync tokens / profile in real time from Firestore (owners assign tokens → athlete sees them live)
+  // Live sync: when Melina assigns tokens, Maxi sees them without reloading
   useEffect(() => {
     if (!currentUser?.uid) return;
     const unsub = gymService.subscribeToUser(currentUser.uid, (profile) => {
@@ -84,7 +81,6 @@ export default function App() {
     setCurrentUser(null);
   };
 
-  // If user is not logged in, display the Gurú Box Login Screen
   if (!currentUser) {
     return <LoginScreen onLoginSuccess={handleLoginSuccess} />;
   }
@@ -119,10 +115,7 @@ export default function App() {
           />
         )}
         {activeView === 'wod' && (
-          <WodView
-            key={`wod_${refreshKey}`}
-            currentUser={currentUser}
-          />
+          <WodView key={`wod_${refreshKey}`} currentUser={currentUser} />
         )}
         {activeView === 'bookings' && (
           <MyBookingsView

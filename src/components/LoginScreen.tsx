@@ -145,7 +145,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                 }`}>
                   <span className="text-[10px] text-emerald-400 uppercase font-bold">Dueña</span>
                   <span className="text-sm font-black text-white block">Melina</span>
-                  <span className="text-[10px] text-slate-400 font-mono">meliguruo</span>
+                  <span className="text-[10px] text-slate-400 font-mono">meliguru</span>
                 </button>
                 <button type="button" onClick={() => handleOwnerSelect('alexis')} className={`p-2.5 rounded-xl border text-left ${
                   identifier === 'alexis' ? 'bg-emerald-500/20 border-emerald-400' : 'bg-emerald-950/30 border-emerald-500/30'

@@ -128,8 +128,8 @@ if (!fs.existsSync(publicDir)) {
   fs.mkdirSync(publicDir, { recursive: true });
 }
 
-fs.writeFileSync(path.join(publicDir, 'logo.png'), generateGymIconPNG(192));
-fs.writeFileSync(path.join(publicDir, 'logo.png'), generateGymIconPNG(512));
-fs.writeFileSync(path.join(publicDir, 'logo.png'), generateGymIconPNG(512));
-fs.writeFileSync(path.join(publicDir, 'logo.png'), generateGymIconPNG(180));
+fs.writeFileSync(path.join(publicDir, 'pwa-192x192.png'), generateGymIconPNG(192));
+fs.writeFileSync(path.join(publicDir, 'pwa-512x512.png'), generateGymIconPNG(512));
+fs.writeFileSync(path.join(publicDir, 'pwa-maskable-512x512.png'), generateGymIconPNG(512));
+fs.writeFileSync(path.join(publicDir, 'apple-touch-icon.png'), generateGymIconPNG(180));
 console.log('All PWA PNG icons generated successfully!');

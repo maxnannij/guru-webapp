@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Download, Smartphone, X, Check } from 'lucide-react';
 import { usePWAInstall } from '../hooks/usePWAInstall';
 
@@ -47,15 +48,15 @@ export const PWAInstallButton: React.FC = () => {
       )}
 
       {/* Modal Guide for iOS Safari */}
-      {showIOSGuide && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+      {showIOSGuide && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 animate-in fade-in duration-200" role="dialog" aria-modal="true" aria-labelledby="ios-install-title">
           <div className="w-full max-w-sm rounded-2xl bg-slate-900 border border-slate-800 p-6 shadow-2xl text-slate-100">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold">
                   ⚡
                 </div>
-                <h3 className="font-semibold text-slate-100">Instalar en iPhone / iPad</h3>
+                <h3 id="ios-install-title" className="font-semibold text-slate-100">Instalar en iPhone / iPad</h3>
               </div>
               <button
                 onClick={() => setShowIOSGuide(false)}
@@ -102,7 +103,8 @@ export const PWAInstallButton: React.FC = () => {
               Entendido
             </button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {justInstalled && (

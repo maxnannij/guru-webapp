@@ -1,0 +1,6 @@
+{
+  "name": "IronBox Gym",
+  "description": "Sistema PWA para reserva de turnos de gimnasio, control de cupos, gestión de tokens y atletas, WOD del día y recarga de créditos.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

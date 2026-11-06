@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#090d16" />
+      <stop offset="100%" stop-color="#1e293b" />
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#fbbf24" />
+      <stop offset="100%" stop-color="#d97706" />
+    </linearGradient>
+    <linearGradient id="metal" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f8fafc" />
+      <stop offset="100%" stop-color="#94a3b8" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Background circle with safe zone margin -->
+  <rect width="512" height="512" rx="110" fill="url(#bg)" />
+
+  <!-- Outer subtle boundary ring -->
+  <circle cx="256" cy="256" r="215" fill="none" stroke="#334155" stroke-width="4" stroke-dasharray="8 6" opacity="0.6" />
+  <circle cx="256" cy="256" r="200" fill="none" stroke="url(#gold)" stroke-width="3" opacity="0.4" />
+
+  <!-- Stylized Barbell / Kettlebell emblem -->
+  <g transform="translate(256, 235)">
+    <!-- Barbell Bar -->
+    <rect x="-160" y="-14" width="320" height="28" rx="6" fill="url(#metal)" />
+    
+    <!-- Outer Weight Plates -->
+    <rect x="-180" y="-70" width="22" height="140" rx="6" fill="url(#gold)" filter="url(#glow)" />
+    <rect x="-150" y="-55" width="16" height="110" rx="4" fill="#64748b" />
+    
+    <rect x="158" y="-70" width="22" height="140" rx="6" fill="url(#gold)" filter="url(#glow)" />
+    <rect x="134" y="-55" width="16" height="110" rx="4" fill="#64748b" />
+
+    <!-- Center Gym Shield / Hexagon -->
+    <path d="M 0 -85 L 75 -42 L 75 45 L 0 90 L -75 45 L -75 -42 Z" fill="#0f172a" stroke="url(#gold)" stroke-width="8" stroke-linejoin="round" />
+    
+    <!-- Lightning / Dynamic Strength Bolt inside shield -->
+    <path d="M 5 -50 L -25 -5 L 0 -5 L -10 50 L 30 -5 L 5 -5 Z" fill="url(#gold)" />
+  </g>
+
+  <!-- Typography Brand Mark: IRONBOX -->
+  <text x="256" y="380" font-family="'Oswald', 'Plus Jakarta Sans', system-ui, sans-serif" font-size="44" font-weight="700" fill="#f8fafc" text-anchor="middle" letter-spacing="4">IRONBOX</text>
+  <text x="256" y="415" font-family="'Plus Jakarta Sans', system-ui, sans-serif" font-size="16" font-weight="600" fill="#f59e0b" text-anchor="middle" letter-spacing="6">TRAINING CLUB</text>
+</svg>

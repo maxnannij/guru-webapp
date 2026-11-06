@@ -1,0 +1,105 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Athlete or Gym Owner profile",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string", "maxLength": 100 },
+        "role": { "type": "string", "enum": ["athlete", "owner"] },
+        "tokens": { "type": "number" },
+        "phone": { "type": "string", "maxLength": 30 },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["uid", "email", "displayName", "role", "tokens"]
+    },
+    "Booking": {
+      "title": "Booking",
+      "description": "Class slot reservation for an athlete",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "slotDate": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" },
+        "slotTime": { "type": "string" },
+        "athleteId": { "type": "string" },
+        "athleteName": { "type": "string", "maxLength": 100 },
+        "athleteEmail": { "type": "string" },
+        "status": { "type": "string", "enum": ["confirmed", "cancelled_refunded", "cancelled_penalty"] },
+        "attended": { "type": "boolean" },
+        "bookedAt": { "type": "string" }
+      },
+      "required": ["id", "slotDate", "slotTime", "athleteId", "athleteName", "status"]
+    },
+    "WOD": {
+      "title": "WOD",
+      "description": "Daily Workout of the Day",
+      "type": "object",
+      "properties": {
+        "date": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" },
+        "title": { "type": "string", "maxLength": 150 },
+        "warmUp": { "type": "string", "maxLength": 1000 },
+        "strength": { "type": "string", "maxLength": 1000 },
+        "conditioning": { "type": "string", "maxLength": 2000 },
+        "notes": { "type": "string", "maxLength": 1000 },
+        "coach": { "type": "string", "maxLength": 100 },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["date", "title", "conditioning"]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "In-app and push notification record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "recipientId": { "type": "string" },
+        "recipientRole": { "type": "string", "enum": ["all", "owner", "athlete"] },
+        "title": { "type": "string", "maxLength": 150 },
+        "message": { "type": "string", "maxLength": 500 },
+        "type": { "type": "string", "enum": ["booking", "cancellation", "token_recharge", "wod"] },
+        "read": { "type": "boolean" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "recipientId", "title", "message", "type", "read"]
+    },
+    "TokenTransaction": {
+      "title": "TokenTransaction",
+      "description": "Ledger of token additions and spending",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "athleteId": { "type": "string" },
+        "athleteName": { "type": "string" },
+        "amount": { "type": "number" },
+        "type": { "type": "string", "enum": ["purchase_mercadopago", "admin_grant", "booking_spent", "booking_refund"] },
+        "reference": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "athleteId", "amount", "type"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "User" },
+      "description": "User profile with roles and tokens"
+    },
+    "/bookings/{bookingId}": {
+      "schema": { "$ref": "Booking" },
+      "description": "Class session bookings"
+    },
+    "/wods/{dateId}": {
+      "schema": { "$ref": "WOD" },
+      "description": "Daily workout plans uploaded by owners"
+    },
+    "/notifications/{notificationId}": {
+      "schema": { "$ref": "Notification" },
+      "description": "Notifications for owners and athletes"
+    },
+    "/transactions/{transactionId}": {
+      "schema": { "$ref": "TokenTransaction" },
+      "description": "Token transaction history"
+    }
+  }
+}

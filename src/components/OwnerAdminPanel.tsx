@@ -1,36 +1,53 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Users, Dumbbell, Clock, Zap, Plus, Minus, Search, CheckCircle, Calendar,
-  AlertCircle, Save, Bell, Ban, RotateCcw,
+  Users,
+  Zap,
+  Plus,
+  Minus,
+  Search,
+  Ban,
+  RotateCcw,
+  Dumbbell,
+  Calendar,
+  Clock,
+  CheckCircle2,
+  Save,
+  ClipboardList,
+  Bell,
 } from 'lucide-react';
 import { UserProfile, WOD, Booking, CancelledSlot } from '../types/gym';
 import { gymService } from '../services/gymService';
-import { GYM_SLOT_TIMES, SlotTime, MAX_SLOT_CAPACITY } from '../utils/bookingRules';
+import { GYM_SLOT_TIMES, SlotTime } from '../utils/bookingRules';
 
 interface OwnerAdminPanelProps {
   currentUser: UserProfile;
   onRefresh: () => void;
 }
 
+type AdminTab = 'tokens' | 'cancel_slots' | 'wod_builder' | 'attendance' | 'reservations';
+
 export const OwnerAdminPanel: React.FC<OwnerAdminPanelProps> = ({ currentUser, onRefresh }) => {
-  const [activeTab, setActiveTab] = useState<'athletes' | 'cancel_slots' | 'wod_builder' | 'attendance' | 'bookings_feed'>('athletes');
+  const [activeTab, setActiveTab] = useState<AdminTab>('tokens');
   const [searchQuery, setSearchQuery] = useState('');
   const [actionFeedback, setActionFeedback] = useState<string | null>(null);
-  const todayStr = new Date().toISOString().split('T')[0];
-  const [cancelDate, setCancelDate] = useState(todayStr);
-  const [cancelTime, setCancelTime] = useState<SlotTime>('15:00');
+
+  const [cancelDate, setCancelDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [cancelTime, setCancelTime] = useState<string>('15:00');
   const [cancelReason, setCancelReason] = useState('Feriado / Mantenimiento del Box');
-  const [attendanceDate, setAttendanceDate] = useState(todayStr);
-  const [attendanceTime, setAttendanceTime] = useState<SlotTime>('19:00');
+
+  const [wodDate, setWodDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [wodTitle, setWodTitle] = useState('');
+  const [wodWarmUp, setWodWarmUp] = useState('');
+  const [wodStrength, setWodStrength] = useState('');
+  const [wodConditioning, setWodConditioning] = useState('');
+  const [wodScaling, setWodScaling] = useState('');
+  const [wodNotes, setWodNotes] = useState('');
+  const [wodCoach, setWodCoach] = useState(currentUser.displayName);
+
+  const [attendanceDate, setAttendanceDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [attendanceTime, setAttendanceTime] = useState<string>('15:00');
+
   const currentWod = gymService.getWOD(attendanceDate);
-  const [wodDate, setWodDate] = useState(todayStr);
-  const [wodTitle, setWodTitle] = useState(currentWod?.title || 'GURÚ FORCE');
-  const [wodWarmUp, setWodWarmUp] = useState(currentWod?.warmUp || '');
-  const [wodStrength, setWodStrength] = useState(currentWod?.strength || '');
-  const [wodConditioning, setWodConditioning] = useState(currentWod?.conditioning || '');
-  const [wodScaling, setWodScaling] = useState(currentWod?.scaling || '');
-  const [wodNotes, setWodNotes] = useState(currentWod?.notes || '');
-  const [wodCoach, setWodCoach] = useState(currentWod?.coach || currentUser.displayName);
 
   const [athletes, setAthletes] = useState<UserProfile[]>(() => gymService.getAthletes());
   const [loadingAthletes, setLoadingAthletes] = useState(true);
@@ -38,9 +55,8 @@ export const OwnerAdminPanel: React.FC<OwnerAdminPanelProps> = ({ currentUser, o
   useEffect(() => {
     let cancelled = false;
     setLoadingAthletes(true);
-    gymService
-      .refreshUsersFromFirestore()
-      .then(list => { if (!cancelled) setAthletes(list); })
+    Promise.all([gymService.refreshUsersFromFirestore(), gymService.refreshSharedData()])
+      .then(([list]) => { if (!cancelled) setAthletes(list); })
       .finally(() => { if (!cancelled) setLoadingAthletes(false); });
     return () => { cancelled = true; };
   }, [currentUser.uid]);
@@ -63,22 +79,22 @@ export const OwnerAdminPanel: React.FC<OwnerAdminPanelProps> = ({ currentUser, o
     }
   };
 
-  const handleCancelSlotSubmit = (e: React.FormEvent) => {
+  const handleCancelSlotSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const res = gymService.cancelSlotByOwner(cancelDate, cancelTime, cancelReason, currentUser.displayName);
+    const res = await gymService.cancelSlotByOwner(cancelDate, cancelTime, cancelReason, currentUser.displayName);
     setActionFeedback(res.message);
     setTimeout(() => setActionFeedback(null), 5000);
     onRefresh();
   };
 
-  const handleReopenSlot = (date: string, time: string) => {
-    const res = gymService.reopenSlotByOwner(date, time);
+  const handleReopenSlot = async (date: string, time: string) => {
+    const res = await gymService.reopenSlotByOwner(date, time);
     setActionFeedback(res.message);
     setTimeout(() => setActionFeedback(null), 4000);
     onRefresh();
   };
 
-  const handleSaveWod = (e: React.FormEvent) => {
+  const handleSaveWod = async (e: React.FormEvent) => {
     e.preventDefault();
     const newWod: WOD = {
       date: wodDate,
@@ -91,7 +107,7 @@ export const OwnerAdminPanel: React.FC<OwnerAdminPanelProps> = ({ currentUser, o
       coach: wodCoach,
       createdAt: new Date().toISOString(),
     };
-    gymService.saveWOD(newWod);
+    await gymService.saveWOD(newWod);
     setActionFeedback(`WOD ${wodDate} publicado`);
     setTimeout(() => setActionFeedback(null), 4000);
     onRefresh();
@@ -108,77 +124,91 @@ export const OwnerAdminPanel: React.FC<OwnerAdminPanelProps> = ({ currentUser, o
         activeTab === id ? 'bg-emerald-500 text-slate-950' : 'text-slate-400 hover:bg-slate-800'
       }`}
     >
-      {icon}<span>{label}</span>
+      {icon}
+      {label}
     </button>
   );
 
   return (
-    <div className="space-y-6">
-      <div className="p-5 rounded-2xl bg-gradient-to-r from-emerald-950/40 via-slate-900 to-slate-900 border border-emerald-500/30">
-        <h2 className="text-xl font-bold text-white">Panel de Dueño: {currentUser.displayName}</h2>
-        <p className="text-xs text-slate-400">Atletas se cargan desde Firebase (proyecto Guru Box).</p>
+    <div className="space-y-5">
+      <div className="p-4 rounded-2xl border border-emerald-500/30 bg-slate-900/80">
+        <h2 className="text-lg font-black text-white">Panel de Dueño: {currentUser.displayName}</h2>
+        <p className="text-xs text-slate-400 mt-1">Atletas se cargan desde Firebase (proyecto Guru Box).</p>
       </div>
 
       {actionFeedback && (
-        <div className="p-4 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-semibold flex items-center gap-2">
-          <CheckCircle className="w-4 h-4" /><span>{actionFeedback}</span>
+        <div className="p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-sm flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 shrink-0" />
+          {actionFeedback}
         </div>
       )}
 
-      <div className="flex items-center gap-2 border-b border-slate-800 pb-2 overflow-x-auto">
-        {tabBtn('athletes', `Asignar Tokens (${athletes.length})`, <Users className="w-4 h-4" />)}
+      <div className="flex gap-2 overflow-x-auto pb-1">
+        {tabBtn('tokens', `Asignar Tokens (${athletes.length})`, <Users className="w-4 h-4" />)}
         {tabBtn('cancel_slots', 'Cancelar Horarios', <Ban className="w-4 h-4" />)}
         {tabBtn('wod_builder', 'Cargar WOD', <Dumbbell className="w-4 h-4" />)}
-        {tabBtn('attendance', 'Asistencia', <Clock className="w-4 h-4" />)}
-        {tabBtn('bookings_feed', 'Reservas', <Bell className="w-4 h-4" />)}
+        {tabBtn('attendance', 'Asistencia', <ClipboardList className="w-4 h-4" />)}
+        {tabBtn('reservations', 'Reservas', <Bell className="w-4 h-4" />)}
       </div>
 
-      {activeTab === 'athletes' && (
-        <div className="space-y-4">
+      {activeTab === 'tokens' && (
+        <div className="space-y-3">
           <div className="relative">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Buscar atleta..." className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white" />
+            <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="Buscar atleta..."
+              className="w-full pl-10 pr-3 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-sm"
+            />
           </div>
-          <div className="rounded-2xl border border-slate-800 bg-slate-900 overflow-hidden">
-            {filteredAthletes.length === 0 ? (
-              <div className="p-10 text-center space-y-3">
-                <Users className="w-10 h-10 text-slate-600 mx-auto" />
-                <h4 className="text-sm font-bold text-slate-300">
-                  {loadingAthletes ? 'Cargando atletas desde Firebase…' : searchQuery ? 'Sin resultados' : 'No hay atletas registrados'}
-                </h4>
-                <p className="text-xs text-slate-400">Cuando un atleta se registre, aparece acá automáticamente.</p>
-              </div>
-            ) : (
-              <table className="w-full text-left text-xs text-slate-300">
-                <thead className="bg-slate-950/80 border-b border-slate-800 text-slate-400 uppercase font-bold text-[11px]">
-                  <tr>
-                    <th className="py-3 px-4">Atleta</th>
-                    <th className="py-3 px-4">Email</th>
-                    <th className="py-3 px-4">Tokens</th>
-                    <th className="py-3 px-4 text-right">Asignar</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800/60">
-                  {filteredAthletes.map(athlete => (
-                    <tr key={athlete.uid} className="hover:bg-slate-800/30">
-                      <td className="py-3 px-4 font-bold text-white">{athlete.displayName}</td>
-                      <td className="py-3 px-4">{athlete.email}<div className="text-slate-500">{athlete.phone || ''}</div></td>
-                      <td className="py-3 px-4">
-                        <span className="inline-flex items-center gap-1 font-black text-emerald-400 bg-emerald-400/10 px-2.5 py-1 rounded-lg">
-                          <Zap className="w-3.5 h-3.5" />{athlete.tokens}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-right space-x-1">
-                        <button onClick={() => handleAdjustTokens(athlete, -1)} className="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-rose-300"><Minus className="w-3.5 h-3.5" /></button>
-                        <button onClick={() => handleAdjustTokens(athlete, 1)} className="p-1.5 rounded-lg bg-slate-800 hover:bg-emerald-500/20 text-emerald-300"><Plus className="w-3.5 h-3.5" /></button>
-                        <button onClick={() => handleAdjustTokens(athlete, 8)} className="px-2 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 text-[10px] font-bold">+8</button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          {loadingAthletes && <p className="text-xs text-slate-500">Cargando atletas desde Firebase…</p>}
+          <div className="rounded-2xl border border-slate-800 overflow-hidden">
+            <div className="grid grid-cols-[1fr_1.2fr_80px_120px] gap-2 px-4 py-2 text-[10px] uppercase tracking-wider text-slate-500 bg-slate-900/80">
+              <span>Atleta</span>
+              <span>Email</span>
+              <span>Tokens</span>
+              <span>Asignar</span>
+            </div>
+            {filteredAthletes.length === 0 && !loadingAthletes && (
+              <p className="p-6 text-center text-sm text-slate-500">No hay atletas registrados aún.</p>
             )}
+            {filteredAthletes.map(athlete => (
+              <div
+                key={athlete.uid}
+                className="grid grid-cols-[1fr_1.2fr_80px_120px] gap-2 px-4 py-3 border-t border-slate-800/80 items-center text-sm"
+              >
+                <div>
+                  <span className="font-bold text-white block">{athlete.displayName}</span>
+                  {athlete.phone && <span className="text-[11px] text-slate-500">{athlete.phone}</span>}
+                </div>
+                <span className="text-xs text-slate-400 truncate">{athlete.email}</span>
+                <span className="inline-flex items-center gap-1 text-emerald-400 font-bold">
+                  <Zap className="w-3.5 h-3.5" />
+                  {athlete.tokens}
+                </span>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => handleAdjustTokens(athlete, -1)}
+                    className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-slate-300 flex items-center justify-center"
+                  >
+                    <Minus className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => handleAdjustTokens(athlete, 1)}
+                    className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-emerald-500/20 text-slate-300 flex items-center justify-center"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => handleAdjustTokens(athlete, 8)}
+                    className="h-8 px-2 rounded-lg bg-emerald-500/20 text-emerald-300 text-[10px] font-black"
+                  >
+                    +8
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
@@ -186,20 +216,36 @@ export const OwnerAdminPanel: React.FC<OwnerAdminPanelProps> = ({ currentUser, o
       {activeTab === 'cancel_slots' && (
         <div className="space-y-4 max-w-lg">
           <form onSubmit={handleCancelSlotSubmit} className="space-y-3 p-4 rounded-2xl border border-slate-800 bg-slate-900">
-            <label className="text-xs text-slate-400 block">Fecha<input type="date" value={cancelDate} onChange={e => setCancelDate(e.target.value)} className="w-full mt-1 rounded-lg bg-slate-950 border border-slate-800 px-3 py-2 text-sm" /></label>
-            <label className="text-xs text-slate-400 block">Horario
-              <select value={cancelTime} onChange={e => setCancelTime(e.target.value as SlotTime)} className="w-full mt-1 rounded-lg bg-slate-950 border border-slate-800 px-3 py-2 text-sm">
-                {GYM_SLOT_TIMES.map(t => <option key={t} value={t}>{t}</option>)}
+            <div>
+              <label className="text-xs text-slate-400 block mb-1">Fecha</label>
+              <input type="date" value={cancelDate} onChange={e => setCancelDate(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm" required />
+            </div>
+            <div>
+              <label className="text-xs text-slate-400 block mb-1">Horario</label>
+              <select value={cancelTime} onChange={e => setCancelTime(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm">
+                {GYM_SLOT_TIMES.map(t => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
               </select>
-            </label>
-            <label className="text-xs text-slate-400 block">Motivo<input value={cancelReason} onChange={e => setCancelReason(e.target.value)} className="w-full mt-1 rounded-lg bg-slate-950 border border-slate-800 px-3 py-2 text-sm" /></label>
-            <button type="submit" className="w-full py-2.5 rounded-xl bg-rose-500 text-white font-bold text-xs">Cancelar turno y reembolsar</button>
+            </div>
+            <div>
+              <label className="text-xs text-slate-400 block mb-1">Motivo</label>
+              <input value={cancelReason} onChange={e => setCancelReason(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm" required />
+            </div>
+            <button type="submit" className="w-full py-2.5 rounded-xl bg-rose-500 hover:bg-rose-400 text-white font-bold text-sm">
+              Cancelar turno y reembolsar
+            </button>
           </form>
           <div className="space-y-2">
             {cancelledSlots.map(s => (
-              <div key={s.id} className="flex items-center justify-between p-3 rounded-xl bg-slate-900 border border-slate-800 text-xs">
-                <span>{s.slotDate} {s.slotTime} — {s.reason}</span>
-                <button onClick={() => handleReopenSlot(s.slotDate, s.slotTime)} className="text-emerald-400 flex items-center gap-1"><RotateCcw className="w-3.5 h-3.5" />Reabrir</button>
+              <div key={s.id} className="flex items-center justify-between px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-xs">
+                <span className="text-slate-300">{s.slotDate} {s.slotTime} — {s.reason}</span>
+                <button onClick={() => handleReopenSlot(s.slotDate, s.slotTime)} className="text-emerald-400 flex items-center gap-1">
+                  <RotateCcw className="w-3.5 h-3.5" />Reabrir
+                </button>
               </div>
             ))}
           </div>
@@ -208,34 +254,80 @@ export const OwnerAdminPanel: React.FC<OwnerAdminPanelProps> = ({ currentUser, o
 
       {activeTab === 'wod_builder' && (
         <form onSubmit={handleSaveWod} className="space-y-3 max-w-2xl p-4 rounded-2xl border border-slate-800 bg-slate-900">
-          <input type="date" value={wodDate} onChange={e => setWodDate(e.target.value)} className="w-full rounded-lg bg-slate-950 border border-slate-800 px-3 py-2 text-sm" />
-          <input value={wodTitle} onChange={e => setWodTitle(e.target.value)} placeholder="Título" className="w-full rounded-lg bg-slate-950 border border-slate-800 px-3 py-2 text-sm" />
-          <textarea value={wodWarmUp} onChange={e => setWodWarmUp(e.target.value)} placeholder="Warm-up" rows={3} className="w-full rounded-lg bg-slate-950 border border-slate-800 px-3 py-2 text-sm" />
-          <textarea value={wodStrength} onChange={e => setWodStrength(e.target.value)} placeholder="Strength" rows={3} className="w-full rounded-lg bg-slate-950 border border-slate-800 px-3 py-2 text-sm" />
-          <textarea value={wodConditioning} onChange={e => setWodConditioning(e.target.value)} placeholder="Conditioning" rows={4} className="w-full rounded-lg bg-slate-950 border border-slate-800 px-3 py-2 text-sm" />
-          <textarea value={wodScaling} onChange={e => setWodScaling(e.target.value)} placeholder="Scaling" rows={2} className="w-full rounded-lg bg-slate-950 border border-slate-800 px-3 py-2 text-sm" />
-          <textarea value={wodNotes} onChange={e => setWodNotes(e.target.value)} placeholder="Notes" rows={2} className="w-full rounded-lg bg-slate-950 border border-slate-800 px-3 py-2 text-sm" />
-          <input value={wodCoach} onChange={e => setWodCoach(e.target.value)} placeholder="Coach" className="w-full rounded-lg bg-slate-950 border border-slate-800 px-3 py-2 text-sm" />
-          <button type="submit" className="w-full py-2.5 rounded-xl bg-emerald-500 text-slate-950 font-bold text-xs flex items-center justify-center gap-2"><Save className="w-4 h-4" />Publicar WOD</button>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-slate-400 block mb-1">Fecha</label>
+              <input type="date" value={wodDate} onChange={e => setWodDate(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm" required />
+            </div>
+            <div>
+              <label className="text-xs text-slate-400 block mb-1">Coach</label>
+              <input value={wodCoach} onChange={e => setWodCoach(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm" />
+            </div>
+          </div>
+          <div>
+            <label className="text-xs text-slate-400 block mb-1">Título</label>
+            <input value={wodTitle} onChange={e => setWodTitle(e.target.value)}
+              className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm" required />
+          </div>
+          <div>
+            <label className="text-xs text-slate-400 block mb-1">Warm-up</label>
+            <textarea value={wodWarmUp} onChange={e => setWodWarmUp(e.target.value)} rows={2}
+              className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm" required />
+          </div>
+          <div>
+            <label className="text-xs text-slate-400 block mb-1">Fuerza</label>
+            <textarea value={wodStrength} onChange={e => setWodStrength(e.target.value)} rows={2}
+              className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm" required />
+          </div>
+          <div>
+            <label className="text-xs text-slate-400 block mb-1">Metcon</label>
+            <textarea value={wodConditioning} onChange={e => setWodConditioning(e.target.value)} rows={3}
+              className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm" required />
+          </div>
+          <div>
+            <label className="text-xs text-slate-400 block mb-1">Escalamiento</label>
+            <textarea value={wodScaling} onChange={e => setWodScaling(e.target.value)} rows={2}
+              className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm" />
+          </div>
+          <div>
+            <label className="text-xs text-slate-400 block mb-1">Notas</label>
+            <textarea value={wodNotes} onChange={e => setWodNotes(e.target.value)} rows={2}
+              className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm" />
+          </div>
+          <button type="submit" className="w-full py-2.5 rounded-xl bg-emerald-500 text-slate-950 font-bold text-xs flex items-center justify-center gap-2">
+            <Save className="w-4 h-4" />Publicar WOD
+          </button>
         </form>
       )}
 
       {activeTab === 'attendance' && (
-        <div className="space-y-4">
-          <div className="flex gap-3">
-            <input type="date" value={attendanceDate} onChange={e => setAttendanceDate(e.target.value)} className="rounded-lg bg-slate-900 border border-slate-800 px-3 py-2 text-sm" />
-            <select value={attendanceTime} onChange={e => setAttendanceTime(e.target.value as SlotTime)} className="rounded-lg bg-slate-900 border border-slate-800 px-3 py-2 text-sm">
+        <div className="space-y-3">
+          <div className="flex flex-wrap gap-3">
+            <input type="date" value={attendanceDate} onChange={e => setAttendanceDate(e.target.value)}
+              className="px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-sm" />
+            <select value={attendanceTime} onChange={e => setAttendanceTime(e.target.value)}
+              className="px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-sm">
               {GYM_SLOT_TIMES.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
           </div>
-          <p className="text-xs text-slate-400">Cupo: {slotBookings.length}/{MAX_SLOT_CAPACITY}</p>
-          <div className="space-y-2">
-            {slotBookings.length === 0 && <p className="text-sm text-slate-500">Sin reservas en este turno.</p>}
+          <div className="rounded-2xl border border-slate-800 divide-y divide-slate-800">
+            {slotBookings.length === 0 && (
+              <p className="p-6 text-center text-sm text-slate-500">Sin reservas confirmadas en este turno.</p>
+            )}
             {slotBookings.map(b => (
-              <div key={b.id} className="flex items-center justify-between p-3 rounded-xl bg-slate-900 border border-slate-800 text-xs">
-                <span className="font-bold text-white">{b.athleteName}</span>
-                <button onClick={() => { gymService.markAttendance(b.id, !b.attended); onRefresh(); }}
-                  className={`px-2 py-1 rounded-lg font-bold ${b.attended ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-800 text-slate-400'}`}>
+              <div key={b.id} className="flex items-center justify-between px-4 py-3 text-sm">
+                <div>
+                  <span className="font-bold text-white">{b.athleteName}</span>
+                  <span className="text-xs text-slate-500 block">{b.athleteEmail}</span>
+                </div>
+                <button
+                  onClick={() => { gymService.markAttendance(b.id, !b.attended); onRefresh(); }}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold ${
+                    b.attended ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-800 text-slate-400'
+                  }`}
+                >
                   {b.attended ? 'Presente' : 'Marcar'}
                 </button>
               </div>
@@ -244,13 +336,20 @@ export const OwnerAdminPanel: React.FC<OwnerAdminPanelProps> = ({ currentUser, o
         </div>
       )}
 
-      {activeTab === 'bookings_feed' && (
-        <div className="space-y-2">
-          {allBookings.length === 0 && <p className="text-sm text-slate-500">Sin reservas aún.</p>}
+      {activeTab === 'reservations' && (
+        <div className="rounded-2xl border border-slate-800 divide-y divide-slate-800">
+          {allBookings.length === 0 && (
+            <p className="p-6 text-center text-sm text-slate-500">Aún no hay reservas.</p>
+          )}
           {allBookings.map(b => (
-            <div key={b.id} className="p-3 rounded-xl bg-slate-900 border border-slate-800 text-xs flex justify-between">
-              <span><span className="font-bold text-white">{b.athleteName}</span> — {b.slotDate} {b.slotTime}</span>
-              <span className="text-slate-400">{b.status}</span>
+            <div key={b.id} className="px-4 py-3 text-sm flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <span className="font-bold text-white">{b.athleteName}</span>
+                <span className="text-xs text-slate-500 block">{b.slotDate} {b.slotTime}</span>
+              </div>
+              <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded-lg ${
+                b.status === 'confirmed' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-800 text-slate-400'
+              }`}>{b.status}</span>
             </div>
           ))}
         </div>

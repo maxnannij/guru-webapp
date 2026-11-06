@@ -5,6 +5,8 @@ import {
   getDocs,
   setDoc,
   updateDoc,
+  onSnapshot,
+  Unsubscribe,
 } from 'firebase/firestore';
 import {
   createUserWithEmailAndPassword,
@@ -362,6 +364,30 @@ class GymService {
     return this.users.find(u => u.uid === this.currentUserId) || null;
   }
 
+  applyRemoteUser(profile: UserProfile): void {
+    if (!profile?.uid) return;
+    const idx = this.users.findIndex(u => u.uid === profile.uid);
+    if (idx >= 0) this.users[idx] = { ...this.users[idx], ...profile };
+    else this.users.push(profile);
+    this.persistState();
+  }
+
+  subscribeToUser(uid: string, onUpdate: (profile: UserProfile) => void): () => void {
+    if (!uid) return () => {};
+    const ref = doc(db, 'users', uid);
+    const unsub: Unsubscribe = onSnapshot(
+      ref,
+      snap => {
+        if (!snap.exists()) return;
+        const data = { ...(snap.data() as UserProfile), uid: snap.id };
+        this.applyRemoteUser(data);
+        onUpdate(data);
+      },
+      err => console.warn('subscribeToUser error:', err)
+    );
+    return () => unsub();
+  }
+
   setCurrentUser(uid: string): UserProfile {
     const user = this.users.find(u => u.uid === uid);
     if (user) {
@@ -605,7 +631,6 @@ class GymService {
     const tokenResult = deductToken(athlete.tokens);
     if (!tokenResult.success) return { success: false, error: 'No tienes tokens suficientes' };
     athlete.tokens = tokenResult.newTokens;
-    // keep user list in sync
     const u = this.users.find(x => x.uid === athlete.uid);
     if (u) u.tokens = athlete.tokens;
 

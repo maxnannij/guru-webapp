@@ -44,6 +44,11 @@ service cloud.firestore {
       allow write: if isOwner();
     }
 
+    match /cancelledSlots/{slotId} {
+      allow read: if isSignedIn();
+      allow write: if isOwner();
+    }
+
     match /notifications/{notificationId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn();

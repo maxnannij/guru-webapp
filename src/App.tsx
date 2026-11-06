@@ -61,6 +61,25 @@ export default function App() {
     return () => unsub();
   }, [currentUser?.uid]);
 
+  // Sync bookings, cancelled slots and WODs across devices
+  useEffect(() => {
+    if (!currentUser?.uid) return;
+    let cancelled = false;
+    const pull = async () => {
+      await gymService.refreshSharedData();
+      if (!cancelled) {
+        setCurrentUser(gymService.getCurrentUser());
+        setRefreshKey(k => k + 1);
+      }
+    };
+    pull();
+    const id = window.setInterval(pull, 15000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
+  }, [currentUser?.uid]);
+
   const triggerRefresh = () => {
     setCurrentUser(gymService.getCurrentUser());
     setRefreshKey(k => k + 1);

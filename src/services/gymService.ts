@@ -5,6 +5,7 @@ import {
   getDocs,
   setDoc,
   updateDoc,
+  deleteDoc,
   onSnapshot,
   Unsubscribe,
 } from 'firebase/firestore';
@@ -223,6 +224,43 @@ class GymService {
     }
   }
 
+  async refreshSharedData(): Promise<void> {
+    try {
+      const [bookSnap, cancelSnap, wodSnap] = await Promise.all([
+        getDocs(collection(db, 'bookings')),
+        getDocs(collection(db, 'cancelledSlots')),
+        getDocs(collection(db, 'wods')),
+      ]);
+
+      const remoteBookings: Booking[] = [];
+      bookSnap.forEach(d => {
+        const data = d.data() as Booking;
+        if (data) remoteBookings.push({ ...data, id: data.id || d.id });
+      });
+      const byId = new Map<string, Booking>();
+      this.bookings.forEach(b => byId.set(b.id, b));
+      remoteBookings.forEach(b => byId.set(b.id, b));
+      this.bookings = Array.from(byId.values());
+
+      const remoteCancelled: CancelledSlot[] = [];
+      cancelSnap.forEach(d => {
+        const data = d.data() as CancelledSlot;
+        if (data) remoteCancelled.push({ ...data, id: data.id || d.id });
+      });
+      this.cancelledSlots = remoteCancelled;
+
+      wodSnap.forEach(d => {
+        const data = d.data() as WOD;
+        const dateKey = (data && data.date) || d.id;
+        if (dateKey) this.wods[dateKey] = { ...(data as WOD), date: dateKey };
+      });
+
+      this.persistState();
+    } catch (error) {
+      console.warn('refreshSharedData notice:', error);
+    }
+  }
+
   private ownerEmailForIdentifier(id: string): { email: string; password: string; seed: UserProfile } | null {
     const clean = id.trim().toLowerCase();
     if (clean === 'melina' || clean === 'melina@gurubox.com' || clean === 'owner_melina') {
@@ -292,6 +330,7 @@ class GymService {
     try {
       const cred = await signInWithEmailAndPassword(auth, cleanId, cleanPass);
       await this.refreshUsersFromFirestore();
+      await this.refreshSharedData();
       let profile = this.users.find(u => u.uid === cred.user.uid);
       if (!profile) {
         const snap = await getDoc(doc(db, 'users', cred.user.uid));
@@ -495,10 +534,18 @@ class GymService {
     return this.cancelledSlots.find(s => s.slotDate === date && s.slotTime === time);
   }
 
-  cancelSlotByOwner(date: string, time: string, reason: string, cancelledBy: string): { success: boolean; refundedCount: number; message: string } {
+  async cancelSlotByOwner(
+    date: string,
+    time: string,
+    reason: string,
+    cancelledBy: string
+  ): Promise<{ success: boolean; refundedCount: number; message: string }> {
+    await this.refreshSharedData();
+
     if (this.isSlotCancelled(date, time)) {
       return { success: false, refundedCount: 0, message: 'Este turno ya se encuentra cancelado.' };
     }
+
     const newCancelledSlot: CancelledSlot = {
       id: `${date}_${time}`,
       slotDate: date,
@@ -508,17 +555,25 @@ class GymService {
       cancelledAt: new Date().toISOString(),
     };
     this.cancelledSlots.push(newCancelledSlot);
+
+    try {
+      await setDoc(doc(db, 'cancelledSlots', newCancelledSlot.id), this.cleanObject(newCancelledSlot), { merge: true });
+    } catch (err) {
+      console.warn('Firestore cancelledSlots write notice:', err);
+    }
+
     const affectedBookings = this.bookings.filter(
       b => b.slotDate === date && b.slotTime === time && b.status === 'confirmed'
     );
-    affectedBookings.forEach(b => {
+
+    for (const b of affectedBookings) {
       b.status = 'cancelled_by_owner';
       b.cancelledAt = new Date().toISOString();
       b.penaltyReason = `Turno cancelado por administración (${reason})`;
       const athlete = this.users.find(u => u.uid === b.athleteId);
       if (athlete) {
         athlete.tokens += 1;
-        this.syncUserToFirestore(athlete).catch(() => {});
+        await this.syncUserToFirestore(athlete);
         this.createNotification({
           recipientId: athlete.uid,
           recipientRole: 'athlete',
@@ -527,8 +582,9 @@ class GymService {
           type: 'slot_cancelled',
         });
       }
-      this.syncBookingToFirestore(b).catch(() => {});
-    });
+      await this.syncBookingToFirestore(b);
+    }
+
     this.persistState();
     return {
       success: true,
@@ -537,11 +593,18 @@ class GymService {
     };
   }
 
-  reopenSlotByOwner(date: string, time: string): { success: boolean; message: string } {
+  async reopenSlotByOwner(date: string, time: string): Promise<{ success: boolean; message: string }> {
+    await this.refreshSharedData();
     const idx = this.cancelledSlots.findIndex(s => s.slotDate === date && s.slotTime === time);
     if (idx === -1) return { success: false, message: 'Ese turno no está cancelado.' };
+    const slot = this.cancelledSlots[idx];
     this.cancelledSlots.splice(idx, 1);
     this.persistState();
+    try {
+      await deleteDoc(doc(db, 'cancelledSlots', slot.id || `${date}_${time}`));
+    } catch (err) {
+      console.warn('Firestore reopen slot notice:', err);
+    }
     return { success: true, message: `Turno ${date} ${time} reabierto.` };
   }
 
@@ -573,10 +636,14 @@ class GymService {
     return this.wods[date] || null;
   }
 
-  saveWOD(wod: WOD) {
+  async saveWOD(wod: WOD): Promise<void> {
     this.wods[wod.date] = wod;
     this.persistState();
-    this.syncWodToFirestore(wod).catch(() => {});
+    try {
+      await setDoc(doc(db, 'wods', wod.date), this.cleanObject(wod), { merge: true });
+    } catch (err) {
+      console.warn('Firestore WOD write notice:', err);
+    }
     this.createNotification({
       recipientId: 'all',
       recipientRole: 'athlete',

@@ -2,68 +2,55 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Default-deny catch-all
-    match /{document=**} {
-      allow read, write: if false;
-    }
-
     function isSignedIn() {
       return request.auth != null;
     }
 
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
+    function userDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
     }
 
-    function isBootstrappedAdmin() {
+    function isOwner() {
       return isSignedIn() && (
-        request.auth.token.email == 'maxnannij@gmail.com' ||
-        (request.auth.token.keys().hasAll(['admin']) && request.auth.token.admin == true) ||
-        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'owner'
+        request.auth.token.email == 'melina@gurubox.com' ||
+        request.auth.token.email == 'alexis@gurubox.com' ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+          userDoc().data.role == 'owner')
       );
     }
 
-    // Users collection
     match /users/{userId} {
       allow read: if isSignedIn();
-      allow create: if isSignedIn() && (isOwner(userId) || isBootstrappedAdmin());
+      allow create: if isSignedIn() && request.auth.uid == userId;
       allow update: if isSignedIn() && (
-        isBootstrappedAdmin() ||
-        (isOwner(userId) && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']))
+        request.auth.uid == userId ||
+        isOwner()
       );
-      allow delete: if isBootstrappedAdmin();
+      allow delete: if isOwner();
     }
 
-    // Bookings collection
     match /bookings/{bookingId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn();
       allow update: if isSignedIn() && (
-        isBootstrappedAdmin() ||
+        isOwner() ||
         request.auth.uid == resource.data.athleteId
       );
-      allow delete: if isBootstrappedAdmin();
+      allow delete: if isOwner();
     }
 
-    // WODs collection
     match /wods/{wodId} {
       allow read: if isSignedIn();
-      allow write: if isBootstrappedAdmin();
+      allow write: if isOwner();
     }
 
-    // Notifications collection
     match /notifications/{notificationId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn();
-      allow update: if isSignedIn() && (
-        isBootstrappedAdmin() ||
-        request.auth.uid == resource.data.recipientId
-      );
-      allow delete: if isBootstrappedAdmin();
+      allow update: if isSignedIn();
+      allow delete: if isOwner();
     }
 
-    // Token transactions collection
     match /transactions/{transactionId} {
       allow read: if isSignedIn();
       allow write: if isSignedIn();

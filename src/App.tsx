@@ -56,24 +56,32 @@ export default function App() {
         }
         return { ...prev, ...profile };
       });
-      setRefreshKey(k => k + 1);
+      // Only remount athlete views when tokens change; never reset owner tabs
+      if (profile.role !== 'owner') {
+        setRefreshKey(k => k + 1);
+      }
     });
     return () => unsub();
   }, [currentUser?.uid]);
 
-  // Sync bookings, cancelled slots and WODs across devices
+  // Sync bookings, cancelled slots and WODs across devices (no remount — avoids resetting owner tabs)
   useEffect(() => {
     if (!currentUser?.uid) return;
     let cancelled = false;
     const pull = async () => {
       await gymService.refreshSharedData();
-      if (!cancelled) {
-        setCurrentUser(gymService.getCurrentUser());
-        setRefreshKey(k => k + 1);
+      if (cancelled) return;
+      const u = gymService.getCurrentUser();
+      if (u) {
+        setCurrentUser(prev => {
+          if (!prev) return u;
+          if (prev.tokens === u.tokens && prev.uid === u.uid) return prev;
+          return { ...prev, ...u };
+        });
       }
     };
     pull();
-    const id = window.setInterval(pull, 15000);
+    const id = window.setInterval(pull, 20000);
     return () => {
       cancelled = true;
       window.clearInterval(id);
@@ -146,7 +154,6 @@ export default function App() {
         )}
         {activeView === 'owner_admin' && currentUser.role === 'owner' && (
           <OwnerAdminPanel
-            key={`admin_${refreshKey}`}
             currentUser={currentUser}
             onRefresh={triggerRefresh}
           />

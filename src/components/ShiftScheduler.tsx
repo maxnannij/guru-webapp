@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   Ban,
   MapPin,
+  Tag,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { getGymSlotTimesForDate, SlotTime, MAX_SLOT_CAPACITY, formatDateLabel } from '../utils/bookingRules';
@@ -238,6 +239,7 @@ export const ShiftScheduler: React.FC<ShiftSchedulerProps> = ({
           const alreadyBooked = bookings.some(b => b.athleteId === currentUser.uid);
           const isCancelledByOwner = gymService.isSlotCancelled(selectedDate, slotTime);
           const cancelledInfo = gymService.getCancelledSlot(selectedDate, slotTime);
+          const specialLabel = gymService.getSpecialSlotLabel(selectedDate, slotTime);
 
           const percent = Math.min(100, Math.round((count / MAX_SLOT_CAPACITY) * 100));
 
@@ -286,6 +288,8 @@ export const ShiftScheduler: React.FC<ShiftSchedulerProps> = ({
                       : `${MAX_SLOT_CAPACITY - count} libres`}
                   </span>
                 </div>
+
+                {specialLabel && <div className="mb-3 px-3 py-2 rounded-lg bg-violet-500/10 border border-violet-400/30 text-violet-200 text-xs font-bold flex items-center gap-2"><Tag className="w-3.5 h-3.5 shrink-0" /><span>{specialLabel.title}</span></div>}
 
                 {isCancelledByOwner ? (
                   <div className="my-3 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-300 space-y-1">
@@ -411,6 +415,7 @@ export const ShiftScheduler: React.FC<ShiftSchedulerProps> = ({
                   <span className="text-xs text-slate-400 block">Día y Horario:</span>
                   <span className="text-base font-bold text-white">
                     {selectedDate} a las {selectedSlotForBooking} hs
+                    {gymService.getSpecialSlotLabel(selectedDate, selectedSlotForBooking) && <span className="block text-xs text-violet-300 mt-1">{gymService.getSpecialSlotLabel(selectedDate, selectedSlotForBooking)?.title}</span>}
                   </span>
                 </div>
                 <span className="text-xs bg-emerald-500/20 text-emerald-300 font-semibold px-2 py-1 rounded">

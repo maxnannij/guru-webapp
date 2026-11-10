@@ -13,7 +13,20 @@ export const GYM_SLOT_TIMES = [
   '20:30',
 ] as const;
 
-export type SlotTime = (typeof GYM_SLOT_TIMES)[number];
+export const SATURDAY_SLOT_TIMES = ['09:00', '11:00'] as const;
+export const ALL_GYM_SLOT_TIMES = [...GYM_SLOT_TIMES, ...SATURDAY_SLOT_TIMES] as const;
+
+export type SlotTime = (typeof ALL_GYM_SLOT_TIMES)[number];
+
+/** Horarios habilitados según el día de la semana (fecha local del gimnasio). */
+export function getGymSlotTimesForDate(dateString: string): readonly SlotTime[] {
+  const [year, month, day] = dateString.split('-').map(Number);
+  const dayOfWeek = new Date(year, month - 1, day).getDay();
+
+  if (dayOfWeek === 0) return []; // Domingo cerrado
+  if (dayOfWeek === 6) return SATURDAY_SLOT_TIMES;
+  return GYM_SLOT_TIMES;
+}
 
 export const MAX_SLOT_CAPACITY = 8;
 export const CANCELLATION_PENALTY_WINDOW_MINUTES = 60; // 1 hour rule
@@ -31,8 +44,9 @@ export interface SlotAvailability {
 /**
  * Checks if a slot time is one of the official gym schedule times
  */
-export function isValidSlotTime(time: string): boolean {
-  return (GYM_SLOT_TIMES as readonly string[]).includes(time);
+export function isValidSlotTime(time: string, dateString?: string): boolean {
+  const validTimes = dateString ? getGymSlotTimesForDate(dateString) : ALL_GYM_SLOT_TIMES;
+  return (validTimes as readonly string[]).includes(time);
 }
 
 /**

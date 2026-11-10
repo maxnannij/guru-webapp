@@ -208,6 +208,18 @@ class GymService {
       console.warn('refreshSharedData wods notice:', error);
     }
 
+    try {
+      const notificationSnap = await getDocs(collection(db, 'notifications'));
+      const remoteNotifications: NotificationItem[] = [];
+      notificationSnap.forEach(d => {
+        const data = d.data() as NotificationItem;
+        if (data) remoteNotifications.push({ ...data, id: data.id || d.id });
+      });
+      this.notifications = remoteNotifications;
+    } catch (error) {
+      console.warn('refreshSharedData notifications notice:', error);
+    }
+
     this.persistState();
   }
 
@@ -725,12 +737,15 @@ class GymService {
 
   getNotifications(userId: string, role: string): NotificationItem[] {
     return this.notifications
-      .filter(
-        n =>
-          n.recipientId === userId ||
-          n.recipientId === 'all' ||
-          (role === 'owner' && (n.recipientId === 'owners' || n.recipientRole === 'owner'))
-      )
+      .filter(n => {
+        if (role === 'owner') {
+          return n.type === 'booking' &&
+            (n.recipientId === 'owners' || n.recipientRole === 'owner');
+        }
+        return role === 'athlete' &&
+          n.type === 'slot_cancelled' &&
+          n.recipientId === userId;
+      })
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   }
 
@@ -738,21 +753,27 @@ class GymService {
     return this.getNotifications(userId, role).filter(n => !n.read).length;
   }
 
-  markNotificationRead(id: string) {
-    const n = this.notifications.find(x => x.id === id);
-    if (n) {
-      n.read = true;
-      this.persistState();
-      this.syncNotificationToFirestore(n).catch(() => {});
+  async markNotificationRead(id: string) {
+    this.notifications = this.notifications.filter(n => n.id !== id);
+    this.persistState();
+    try {
+      await deleteDoc(doc(db, 'notifications', id));
+    } catch (error) {
+      console.warn('No se pudo eliminar la notificación leída:', error);
     }
   }
 
-  markAllNotificationsAsRead(userId: string, role: 'athlete' | 'owner' | string) {
+  async markAllNotificationsAsRead(userId: string, role: 'athlete' | 'owner' | string) {
     const list = this.getNotifications(userId, role);
-    list.forEach(n => {
-      n.read = true;
-    });
+    this.notifications = this.notifications.filter(n => !list.some(item => item.id === n.id));
     this.persistState();
+    await Promise.all(list.map(async notification => {
+      try {
+        await deleteDoc(doc(db, 'notifications', notification.id));
+      } catch (error) {
+        console.warn('No se pudo eliminar la notificación leída:', error);
+      }
+    }));
   }
 
   createNotification(partial: Omit<NotificationItem, 'id' | 'read' | 'createdAt'> & { id?: string }): NotificationItem {

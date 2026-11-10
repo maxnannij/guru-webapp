@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Calendar, Clock, AlertTriangle, CheckCircle, ShieldAlert, X, ChevronRight, Zap } from 'lucide-react';
+import { Calendar, Clock, AlertTriangle, CheckCircle, ShieldAlert, X, ChevronRight, Zap, Tag } from 'lucide-react';
 import { UserProfile, Booking } from '../types/gym';
 import { gymService } from '../services/gymService';
 import { canCancelWithoutPenalty } from '../utils/bookingRules';
@@ -140,6 +140,7 @@ export const MyBookingsView: React.FC<MyBookingsViewProps> = ({
                           {booking.slotTime} hs
                         </span>
                         <span className="text-xs text-slate-400 block">Gurú Box · Roma 2607, Caseros</span>
+                        {gymService.getSpecialSlotLabel(booking.slotDate, booking.slotTime) && <span className="inline-flex items-center gap-1 mt-1 text-xs font-bold text-violet-300"><Tag className="w-3 h-3" />{gymService.getSpecialSlotLabel(booking.slotDate, booking.slotTime)?.title}</span>}
                       </div>
                     </div>
 

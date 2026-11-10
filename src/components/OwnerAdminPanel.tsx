@@ -7,6 +7,7 @@ import {
   Search,
   Ban,
   RotateCcw,
+  Tag,
   Dumbbell,
   Calendar,
   Clock,
@@ -33,7 +34,7 @@ interface OwnerAdminPanelProps {
   onRefresh: () => void;
 }
 
-type AdminTab = 'tokens' | 'cancel_slots' | 'wod_builder' | 'attendance' | 'reservations';
+type AdminTab = 'tokens' | 'cancel_slots' | 'special_slots' | 'wod_builder' | 'attendance' | 'reservations';
 
 export const OwnerAdminPanel: React.FC<OwnerAdminPanelProps> = ({ currentUser, onRefresh }) => {
   const [activeTab, setActiveTab] = useState<AdminTab>('tokens');
@@ -45,6 +46,9 @@ export const OwnerAdminPanel: React.FC<OwnerAdminPanelProps> = ({ currentUser, o
   const [cancelDate, setCancelDate] = useState(() => getLocalDateString());
   const [cancelTime, setCancelTime] = useState<string>(() => getGymSlotTimesForDate(getLocalDateString())[0] || '');
   const [cancelReason, setCancelReason] = useState('Feriado / Mantenimiento del Box');
+  const [specialDate, setSpecialDate] = useState(() => getLocalDateString());
+  const [specialTime, setSpecialTime] = useState<string>(() => getGymSlotTimesForDate(getLocalDateString())[0] || '');
+  const [specialTitle, setSpecialTitle] = useState('');
 
   const [wodDate, setWodDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [wodTitle, setWodTitle] = useState('');
@@ -106,6 +110,22 @@ export const OwnerAdminPanel: React.FC<OwnerAdminPanelProps> = ({ currentUser, o
     onRefresh();
   };
 
+  const handleSaveSpecialSlot = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const result = await gymService.saveSpecialSlotLabel(specialDate, specialTime, specialTitle, currentUser.displayName);
+    setActionFeedback(result.message);
+    if (result.success) setSpecialTitle('');
+    setTimeout(() => setActionFeedback(null), 5000);
+    onRefresh();
+  };
+
+  const handleDeleteSpecialSlot = async (date: string, time: string) => {
+    const result = await gymService.deleteSpecialSlotLabel(date, time);
+    setActionFeedback(result.message);
+    setTimeout(() => setActionFeedback(null), 4000);
+    onRefresh();
+  };
+
   const handleReopenSlot = async (date: string, time: string) => {
     const res = await gymService.reopenSlotByOwner(date, time);
     setActionFeedback(res.message);
@@ -147,6 +167,7 @@ export const OwnerAdminPanel: React.FC<OwnerAdminPanelProps> = ({ currentUser, o
     return groups;
   }, {});
   const cancelledSlots = gymService.getCancelledSlots();
+  const specialSlotLabels = gymService.getSpecialSlotLabels();
   const allBookings = gymService.getAllBookings();
   const filteredBookings = allBookings.filter(booking => {
     const query = reservationSearch.trim().toLowerCase();
@@ -186,6 +207,7 @@ export const OwnerAdminPanel: React.FC<OwnerAdminPanelProps> = ({ currentUser, o
       <div className="flex gap-2 overflow-x-auto pb-1">
         {tabBtn('tokens', `Asignar Tokens (${athletes.length})`, <Users className="w-4 h-4" />)}
         {tabBtn('cancel_slots', 'Cancelar Horarios', <Ban className="w-4 h-4" />)}
+        {tabBtn('special_slots', 'Nombres especiales', <Tag className="w-4 h-4" />)}
         {tabBtn('wod_builder', 'Cargar WOD', <Dumbbell className="w-4 h-4" />)}
         {tabBtn('attendance', 'Asistencia', <ClipboardList className="w-4 h-4" />)}
         {tabBtn('reservations', 'Reservas', <Bell className="w-4 h-4" />)}
@@ -296,6 +318,26 @@ export const OwnerAdminPanel: React.FC<OwnerAdminPanelProps> = ({ currentUser, o
                   <RotateCcw className="w-3.5 h-3.5" />Reabrir
                 </button>
               </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'special_slots' && (
+        <div className="space-y-4 max-w-xl">
+          <div className="p-4 rounded-2xl border border-slate-800 bg-slate-900">
+            <h3 className="text-sm font-bold text-white">Identificar una clase o evento</h3>
+            <p className="text-xs text-slate-400 mt-1">Agregá un nombre visible para los atletas en una fecha y horario puntual. No modifica las reservas ni los cupos.</p>
+          </div>
+          <form onSubmit={handleSaveSpecialSlot} className="space-y-3 p-4 rounded-2xl border border-emerald-500/20 bg-slate-900">
+            <div><label className="text-xs text-slate-400 block mb-1">Fecha</label><input type="date" value={specialDate} onChange={e => { const date = e.target.value; setSpecialDate(date); setSpecialTime(getGymSlotTimesForDate(date)[0] || ''); }} className="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm" required /></div>
+            <div><label className="text-xs text-slate-400 block mb-1">Horario</label><select value={specialTime} onChange={e => setSpecialTime(e.target.value)} className="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm" required disabled={getGymSlotTimesForDate(specialDate).length === 0}>{getGymSlotTimesForDate(specialDate).map(time => <option key={time} value={time}>{time} hs</option>)}</select>{getGymSlotTimesForDate(specialDate).length === 0 && <p className="text-xs text-amber-300 mt-1">Los domingos no hay horarios habilitados.</p>}</div>
+            <div><label className="text-xs text-slate-400 block mb-1">Nombre del evento o entrenamiento</label><input value={specialTitle} onChange={e => setSpecialTitle(e.target.value)} maxLength={60} placeholder="Ej. Competencia / Entrenamiento Synchro" className="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm" required /><p className="text-[10px] text-slate-500 mt-1">Máximo 60 caracteres.</p></div>
+            <button type="submit" disabled={!specialTime || !specialTitle.trim()} className="w-full py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 text-slate-950 font-black text-sm">Guardar nombre del turno</button>
+          </form>
+          <div className="space-y-2"><h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Nombres configurados</h3>
+            {specialSlotLabels.length === 0 ? <p className="p-5 text-center rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-500">Todavía no hay eventos o entrenamientos identificados.</p> : specialSlotLabels.map(item => (
+              <div key={item.id} className="flex items-center justify-between gap-3 p-3 rounded-xl bg-slate-900 border border-slate-800"><div className="min-w-0"><p className="text-sm font-bold text-white truncate">{item.title}</p><p className="text-xs text-slate-400">{item.slotDate} · {item.slotTime} hs · {item.updatedBy}</p></div><button type="button" onClick={() => handleDeleteSpecialSlot(item.slotDate, item.slotTime)} className="shrink-0 p-2 rounded-lg text-rose-300 hover:bg-rose-500/10" aria-label={`Quitar ${item.title}`}><Trash2 className="w-4 h-4" /></button></div>
             ))}
           </div>
         </div>

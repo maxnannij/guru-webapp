@@ -12,6 +12,7 @@ import {
   Ban,
   MapPin,
   Tag,
+  MessageCircle,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { getGymSlotTimesForDate, SlotTime, MAX_SLOT_CAPACITY, formatDateLabel } from '../utils/bookingRules';
@@ -67,6 +68,7 @@ export const ShiftScheduler: React.FC<ShiftSchedulerProps> = ({
     setSelectedDate(days[0].isoDate);
   }, [days[0].isoDate]);
   const [selectedSlotForBooking, setSelectedSlotForBooking] = useState<SlotTime | null>(null);
+  const [isNoTokensModalOpen, setIsNoTokensModalOpen] = useState(false);
   const [bookingNotice, setBookingNotice] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   const bookingsForDate = gymService.getBookingsForDate(selectedDate);
@@ -371,11 +373,7 @@ export const ShiftScheduler: React.FC<ShiftSchedulerProps> = ({
                   <button
                     onClick={() => {
                       if (currentUser.tokens <= 0) {
-                        setBookingNotice({
-                          type: 'error',
-                          message:
-                            'No tienes tokens disponibles. Recuerda que los tokens sólo son asignados por los Coach (Melina y Alexis). Acércate a recepción en Roma 2607, Caseros para cargar créditos.',
-                        });
+                        setIsNoTokensModalOpen(true);
                       } else {
                         setSelectedSlotForBooking(slotTime);
                       }
@@ -391,6 +389,45 @@ export const ShiftScheduler: React.FC<ShiftSchedulerProps> = ({
           );
         })}
       </div>
+      )}
+
+
+      {/* No Tokens Modal */}
+      {isNoTokensModalOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="no-tokens-title"
+            className="w-full max-w-sm rounded-2xl bg-slate-900 border border-rose-500/30 p-6 shadow-2xl text-center text-slate-100"
+          >
+            <div className="mx-auto mb-4 w-14 h-14 rounded-full bg-rose-500/10 border border-rose-500/30 flex items-center justify-center">
+              <Zap className="w-7 h-7 text-rose-400" />
+            </div>
+            <h3 id="no-tokens-title" className="text-xl font-black text-white mb-2">
+              ¡Te quedaste sin tokens!
+            </h3>
+            <p className="text-sm text-slate-300 leading-relaxed mb-5">
+              Para seguir reservando tus clases, contactanos por WhatsApp y te ayudamos a cargar nuevos créditos.
+            </p>
+            <a
+              href="https://wa.me/5491130518115?text=Hola%2C%20me%20qued%C3%A9%20sin%20tokens%20en%20Gur%C3%BA%20Box.%20%C2%BFMe%20pueden%20ayudar%20a%20cargar%20cr%C3%A9ditos%3F"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full py-3 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-sm transition flex items-center justify-center gap-2 shadow-lg"
+            >
+              <MessageCircle className="w-5 h-5" />
+              Contactar por WhatsApp
+            </a>
+            <button
+              type="button"
+              onClick={() => setIsNoTokensModalOpen(false)}
+              className="mt-3 w-full py-2.5 rounded-xl border border-slate-700 hover:bg-slate-800 text-slate-300 font-semibold text-xs transition"
+            >
+              Ahora no
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Confirmation Modal */}

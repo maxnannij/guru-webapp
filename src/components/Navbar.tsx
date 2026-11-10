@@ -60,7 +60,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 }`}
               >
                 <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                <span>Panel Dueños</span>
+                <span>Panel Coach</span>
               </button>
 
               <button
@@ -120,7 +120,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Token Balance Pill (for athletes) or Owner Badge */}
           {currentUser.role === 'athlete' ? (
             <div
-              title="Tokens asignados exclusivamente por los dueños de Gurú Box"
+              title="Tokens asignados exclusivamente por los Coach de Gurú Box"
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-bold whitespace-nowrap"
             >
               <Zap className="w-3.5 h-3.5 fill-current text-emerald-400" />
@@ -169,7 +169,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 activeView === 'owner_admin' ? 'text-emerald-400 bg-emerald-500/10' : 'text-emerald-300/80'
               }`}
             >
-              Panel Dueños
+              Panel Choach
             </button>
             <button
               onClick={() => setActiveView('scheduler')}

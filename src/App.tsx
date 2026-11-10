@@ -193,7 +193,7 @@ export default function App() {
 
             <span className="flex items-center gap-1.5 bg-slate-900/90 px-3 py-1.5 rounded-lg border border-slate-800">
               <Phone className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-              <span>Dueños: Melina & Alexis</span>
+              <span>Coach: Melina & Alexis</span>
             </span>
 
             <span className="flex items-center gap-1.5 bg-slate-900/90 px-3 py-1.5 rounded-lg border border-slate-800">

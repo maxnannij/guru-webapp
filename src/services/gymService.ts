@@ -121,6 +121,7 @@ class GymService {
   private specialSlotLabels: SpecialSlotLabel[] = [];
   private wods: Record<string, WOD> = {};
   private notifications: NotificationItem[] = [];
+  private tokenTransactions: TokenTransaction[] = [];
   private currentUserId: string | null = null;
   private isPushSupported: boolean = typeof window !== 'undefined' && 'Notification' in window;
   private pushPermission: NotificationPermission =
@@ -221,6 +222,18 @@ class GymService {
       });
     } catch (error) {
       console.warn('refreshSharedData wods notice:', error);
+    }
+
+    try {
+      const transactionSnap = await getDocs(collection(db, 'transactions'));
+      const remoteTransactions: TokenTransaction[] = [];
+      transactionSnap.forEach(d => {
+        const data = d.data() as TokenTransaction;
+        if (data) remoteTransactions.push({ ...data, id: data.id || d.id });
+      });
+      this.tokenTransactions = remoteTransactions.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    } catch (error) {
+      console.warn('refreshSharedData transactions notice:', error);
     }
 
     try {
@@ -663,6 +676,25 @@ class GymService {
     } catch (err) {
       console.warn('Firestore updateTokens notice:', err);
     }
+    if (amount > 0) {
+      const transaction: TokenTransaction = {
+        id: 'txn_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
+        athleteId,
+        athleteName: user.displayName,
+        amount,
+        type: 'admin_grant',
+        reference: reason,
+        coachName: reason.replace(/^Asignación manual por /, ''),
+        reason,
+        createdAt: new Date().toISOString(),
+      };
+      this.tokenTransactions.unshift(transaction);
+      try {
+        await setDoc(doc(db, 'transactions', transaction.id), this.cleanObject(transaction), { merge: true });
+      } catch (error) {
+        console.warn('No se pudo guardar el historial de tokens:', error);
+      }
+    }
     this.createNotification({
       recipientId: athleteId,
       recipientRole: 'athlete',
@@ -714,6 +746,10 @@ class GymService {
 
   getAllBookings(): Booking[] {
     return [...this.bookings].sort((a, b) => b.bookedAt.localeCompare(a.bookedAt));
+  }
+
+  getTokenTransactions(): TokenTransaction[] {
+    return [...this.tokenTransactions].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   }
 
   bookSlot(params: {

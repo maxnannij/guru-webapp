@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Calendar,
   Clock,
@@ -13,7 +13,7 @@ import {
   MapPin,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { GYM_SLOT_TIMES, SlotTime, MAX_SLOT_CAPACITY, formatDateLabel } from '../utils/bookingRules';
+import { GYM_SLOT_TIMES, getGymSlotTimesForDate, SlotTime, MAX_SLOT_CAPACITY, formatDateLabel } from '../utils/bookingRules';
 import { UserProfile, Booking } from '../types/gym';
 import { gymService } from '../services/gymService';
 
@@ -26,10 +26,23 @@ export const ShiftScheduler: React.FC<ShiftSchedulerProps> = ({
   currentUser,
   onBookingChanged,
 }) => {
+  const [currentTime, setCurrentTime] = useState<Date>(() => new Date());
+
+  useEffect(() => {
+    const interval = window.setInterval(() => setCurrentTime(new Date()), 30_000);
+    return () => window.clearInterval(interval);
+  }, []);
+
+  const toLocalISODate = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   const days = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date();
-    d.setDate(d.getDate() + i);
-    const isoDate = d.toISOString().split('T')[0];
+    const d = new Date(currentTime.getFullYear(), currentTime.getMonth(), currentTime.getDate() + i);
+    const isoDate = toLocalISODate(d);
     const isToday = i === 0;
     const isTomorrow = i === 1;
 
@@ -53,6 +66,13 @@ export const ShiftScheduler: React.FC<ShiftSchedulerProps> = ({
   const [bookingNotice, setBookingNotice] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   const bookingsForDate = gymService.getBookingsForDate(selectedDate);
+  const slotsForSelectedDate = getGymSlotTimesForDate(selectedDate);
+  const isSelectedDateToday = selectedDate === toLocalISODate(currentTime);
+  const availableSlots = slotsForSelectedDate.filter(slotTime => {
+    if (!isSelectedDateToday) return true;
+    const [hours, minutes] = slotTime.split(':').map(Number);
+    return hours * 60 + minutes > currentTime.getHours() * 60 + currentTime.getMinutes();
+  });
 
   const handleConfirmBooking = () => {
     if (!selectedSlotForBooking) return;
@@ -194,8 +214,21 @@ export const ShiftScheduler: React.FC<ShiftSchedulerProps> = ({
       </div>
 
       {/* Shift Slots Grid */}
+      {slotsForSelectedDate.length === 0 ? (
+        <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-8 text-center">
+          <Calendar className="w-8 h-8 text-slate-500 mx-auto mb-3" />
+          <h3 className="text-lg font-bold text-white">Domingo cerrado</h3>
+          <p className="text-sm text-slate-400 mt-1">No hay turnos disponibles los domingos.</p>
+        </div>
+      ) : availableSlots.length === 0 ? (
+        <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-8 text-center">
+          <Clock className="w-8 h-8 text-slate-500 mx-auto mb-3" />
+          <h3 className="text-lg font-bold text-white">No quedan turnos para hoy</h3>
+          <p className="text-sm text-slate-400 mt-1">Podés consultar los horarios de los próximos días.</p>
+        </div>
+      ) : (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {GYM_SLOT_TIMES.map(slotTime => {
+        {availableSlots.map(slotTime => {
           const bookings = bookingsForDate.filter(b => b.slotTime === slotTime);
           const count = bookings.length;
           const isFull = count >= MAX_SLOT_CAPACITY;
@@ -351,6 +384,7 @@ export const ShiftScheduler: React.FC<ShiftSchedulerProps> = ({
           );
         })}
       </div>
+      )}
 
       {/* Confirmation Modal */}
       {selectedSlotForBooking && (

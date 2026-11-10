@@ -36,7 +36,11 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
   };
 
   const handleMarkAllRead = () => {
-    gymService.markAllNotificationsAsRead(userId, role);
+    gymService.markAllNotificationsAsRead(userId, role).finally(onRefresh);
+  };
+
+  const handleDeleteNotification = async (id: string) => {
+    await gymService.markNotificationRead(id);
     onRefresh();
   };
 
@@ -52,7 +56,7 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
             <div>
               <h2 className="text-base font-semibold text-slate-100">Centro de Notificaciones</h2>
               <p className="text-xs text-slate-400">
-                {role === 'owner' ? 'Avisos para Coaches' : 'Turnos y avisos del gimnasio'}
+                {role === 'owner' ? 'Nuevas reservas de atletas' : 'Cancelaciones de tus turnos'}
               </p>
             </div>
           </div>
@@ -62,7 +66,7 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
                 onClick={handleMarkAllRead}
                 className="text-xs text-amber-400 hover:text-amber-300 font-medium px-2 py-1 rounded hover:bg-slate-800 transition"
               >
-                Marcar leídas
+                Marcar todas leídas
               </button>
             )}
             <button
@@ -81,7 +85,7 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
             <div className="flex items-center gap-3">
               <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
               <p className="text-xs text-slate-300">
-                Activa las <strong>notificaciones push</strong> para recibir confirmaciones de reservas y WODs en tu móvil o PC.
+                {role === 'owner' ? 'Activa las notificaciones push para recibir avisos de nuevas reservas.' : 'Activa las notificaciones push para recibir avisos cuando se cancele uno de tus turnos.'}
               </p>
             </div>
             <button
@@ -139,9 +143,14 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
                     </div>
                     <p className="text-xs text-slate-300 mt-1 leading-relaxed">{n.message}</p>
                   </div>
-                  {!n.read && (
-                    <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0 self-center" />
-                  )}
+                  <button
+                    onClick={() => handleDeleteNotification(n.id)}
+                    aria-label="Marcar como leída y eliminar notificación"
+                    title="Marcar como leída y eliminar"
+                    className="shrink-0 self-center p-2 rounded-lg text-slate-400 hover:text-emerald-400 hover:bg-slate-700/60 transition"
+                  >
+                    <Check className="w-4 h-4" />
+                  </button>
                 </div>
               );
             })
@@ -150,7 +159,7 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
 
         {/* Footer */}
         <div className="px-6 py-3 border-t border-slate-800 text-xs text-slate-400 flex items-center justify-between bg-slate-900/80">
-          <span>{notifications.length} notificaciones registradas</span>
+          <span>{notifications.length} notificaciones pendientes</span>
           <button
             onClick={onClose}
             className="text-slate-300 hover:text-white font-medium"

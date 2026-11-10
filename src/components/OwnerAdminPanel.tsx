@@ -38,6 +38,8 @@ type AdminTab = 'tokens' | 'cancel_slots' | 'wod_builder' | 'attendance' | 'rese
 export const OwnerAdminPanel: React.FC<OwnerAdminPanelProps> = ({ currentUser, onRefresh }) => {
   const [activeTab, setActiveTab] = useState<AdminTab>('tokens');
   const [searchQuery, setSearchQuery] = useState('');
+  const [reservationSearch, setReservationSearch] = useState('');
+  const [reservationDate, setReservationDate] = useState('');
   const [actionFeedback, setActionFeedback] = useState<string | null>(null);
 
   const [cancelDate, setCancelDate] = useState(() => getLocalDateString());
@@ -145,7 +147,15 @@ export const OwnerAdminPanel: React.FC<OwnerAdminPanelProps> = ({ currentUser, o
     return groups;
   }, {});
   const cancelledSlots = gymService.getCancelledSlots();
-  const allBookings = gymService.getAllBookings().slice(0, 30);
+  const allBookings = gymService.getAllBookings();
+  const filteredBookings = allBookings.filter(booking => {
+    const query = reservationSearch.trim().toLowerCase();
+    const matchesAthlete = !query ||
+      booking.athleteName.toLowerCase().includes(query) ||
+      booking.athleteEmail.toLowerCase().includes(query);
+    const matchesDate = !reservationDate || booking.slotDate === reservationDate;
+    return matchesAthlete && matchesDate;
+  });
 
   const tabBtn = (id: typeof activeTab, label: string, icon: React.ReactNode) => (
     <button
@@ -417,21 +427,66 @@ export const OwnerAdminPanel: React.FC<OwnerAdminPanelProps> = ({ currentUser, o
       )}
 
       {activeTab === 'reservations' && (
-        <div className="rounded-2xl border border-slate-800 divide-y divide-slate-800">
-          {allBookings.length === 0 && (
-            <p className="p-6 text-center text-sm text-slate-500">Aún no hay reservas.</p>
-          )}
-          {allBookings.map(b => (
-            <div key={b.id} className="px-4 py-3 text-sm flex flex-wrap items-center justify-between gap-2">
-              <div>
-                <span className="font-bold text-white">{b.athleteName}</span>
-                <span className="text-xs text-slate-500 block">{b.slotDate} {b.slotTime}</span>
-              </div>
-              <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded-lg ${
-                b.status === 'confirmed' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-800 text-slate-400'
-              }`}>{b.status}</span>
+        <div className="space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-[1fr_190px_auto] gap-2 p-3 rounded-2xl border border-slate-800 bg-slate-900/70">
+            <div className="relative">
+              <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="search"
+                value={reservationSearch}
+                onChange={e => setReservationSearch(e.target.value)}
+                placeholder="Buscar por atleta o email..."
+                aria-label="Buscar reservas por atleta"
+                className="w-full pl-10 pr-3 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white"
+              />
             </div>
-          ))}
+            <div className="relative">
+              <Calendar className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="date"
+                value={reservationDate}
+                onChange={e => setReservationDate(e.target.value)}
+                aria-label="Filtrar reservas por fecha"
+                className="w-full pl-10 pr-3 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => { setReservationSearch(''); setReservationDate(''); }}
+              disabled={!reservationSearch && !reservationDate}
+              className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-bold text-slate-200"
+            >
+              Limpiar filtros
+            </button>
+          </div>
+
+          <div className="flex items-center justify-between px-1">
+            <span className="text-xs text-slate-400">
+              {filteredBookings.length} de {allBookings.length} reservas
+            </span>
+            {(reservationSearch || reservationDate) && (
+              <span className="text-[11px] text-emerald-300">Filtros activos</span>
+            )}
+          </div>
+
+          <div className="rounded-2xl border border-slate-800 divide-y divide-slate-800 overflow-hidden">
+            {filteredBookings.length === 0 ? (
+              <p className="p-6 text-center text-sm text-slate-500">
+                {allBookings.length === 0 ? 'Aún no hay reservas.' : 'No se encontraron reservas con esos filtros.'}
+              </p>
+            ) : filteredBookings.map(b => (
+              <div key={b.id} className="px-4 py-3 text-sm flex flex-wrap items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <span className="font-bold text-white block">{b.athleteName}</span>
+                  <span className="text-xs text-slate-500 block">{b.athleteEmail}</span>
+                  <span className="text-xs text-slate-400 block">{b.slotDate} · {b.slotTime} hs</span>
+                </div>
+                <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded-lg ${
+                  b.status === 'confirmed' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-800 text-slate-400'
+                }`}>{b.status}</span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>

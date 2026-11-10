@@ -157,7 +157,7 @@ export const ShiftScheduler: React.FC<ShiftSchedulerProps> = ({
               className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-[11px] font-semibold"
             >
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-              <span>Asignados por dueños</span>
+              <span>Asignados por Coach</span>
             </div>
           </div>
         </div>
@@ -334,7 +334,7 @@ export const ShiftScheduler: React.FC<ShiftSchedulerProps> = ({
                         setBookingNotice({
                           type: 'error',
                           message:
-                            'No tienes tokens disponibles. Recuerda que los tokens sólo son asignados por los dueños (Melina y Alexis). Acércate a recepción en Roma 2607, Caseros para cargar créditos.',
+                            'No tienes tokens disponibles. Recuerda que los tokens sólo son asignados por los Coach (Melina y Alexis). Acércate a recepción en Roma 2607, Caseros para cargar créditos.',
                         });
                       } else {
                         setSelectedSlotForBooking(slotTime);

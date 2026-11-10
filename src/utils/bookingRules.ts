@@ -88,7 +88,7 @@ export function canBookSlot(params: {
   const { currentTokens, currentBookingsCount, maxCapacity = MAX_SLOT_CAPACITY, alreadyBookedByAthlete, isPast, isCancelledByOwner } = params;
 
   if (isCancelledByOwner) {
-    return { canBook: false, reason: 'Este horario fue cancelado por los dueños de Gurú Box.' };
+    return { canBook: false, reason: 'Este horario fue cancelado por los coach de Gurú Box.' };
   }
 
   if (isPast) {

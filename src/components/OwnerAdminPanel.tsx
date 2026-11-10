@@ -286,7 +286,7 @@ export const OwnerAdminPanel: React.FC<OwnerAdminPanelProps> = ({ currentUser, o
           </div>
           {loadingAthletes && <p className="text-xs text-slate-500">Cargando atletas desde Firebase…</p>}
           <div className="rounded-2xl border border-slate-800 overflow-hidden">
-            <div className="grid grid-cols-[1fr_1.2fr_70px_300px] gap-2 px-4 py-2 text-[10px] uppercase tracking-wider text-slate-500 bg-slate-900/80">
+            <div className="hidden sm:grid sm:grid-cols-[minmax(100px,1fr)_minmax(120px,1.2fr)_70px_minmax(300px,auto)] gap-2 px-4 py-2 text-[10px] uppercase tracking-wider text-slate-500 bg-slate-900/80">
               <span>Atleta</span>
               <span>Email</span>
               <span>Tokens</span>
@@ -298,18 +298,24 @@ export const OwnerAdminPanel: React.FC<OwnerAdminPanelProps> = ({ currentUser, o
             {filteredAthletes.map(athlete => (
               <div
                 key={athlete.uid}
-                className="grid grid-cols-[1fr_1.2fr_70px_300px] gap-2 px-4 py-3 border-t border-slate-800/80 items-center text-sm"
+                className="flex flex-col gap-3 px-3 py-4 border-t border-slate-800/80 text-sm sm:grid sm:grid-cols-[minmax(100px,1fr)_minmax(120px,1.2fr)_70px_minmax(300px,auto)] sm:gap-2 sm:px-4 sm:py-3 sm:items-center"
               >
-                <div>
-                  <span className="font-bold text-white block">{athlete.displayName}</span>
-                  {athlete.phone && <span className="text-[11px] text-slate-500">{athlete.phone}</span>}
+                <div className="flex items-center justify-between gap-3 min-w-0">
+                  <div className="min-w-0">
+                    <span className="font-bold text-white block">{athlete.displayName}</span>
+                    {athlete.phone && <span className="text-[11px] text-slate-500">{athlete.phone}</span>}
+                    <span className="block text-xs text-slate-400 truncate sm:hidden">{athlete.email}</span>
+                  </div>
+                  <span className="inline-flex shrink-0 items-center gap-1 text-emerald-400 font-bold sm:hidden">
+                    <Zap className="w-3.5 h-3.5" /> {athlete.tokens}
+                  </span>
                 </div>
-                <span className="text-xs text-slate-400 truncate">{athlete.email}</span>
-                <span className="inline-flex items-center gap-1 text-emerald-400 font-bold">
+                <span className="hidden sm:block text-xs text-slate-400 truncate">{athlete.email}</span>
+                <span className="hidden sm:inline-flex items-center gap-1 text-emerald-400 font-bold">
                   <Zap className="w-3.5 h-3.5" />
                   {athlete.tokens}
                 </span>
-                <div className="flex items-center gap-1">
+                <div className="flex flex-wrap items-center gap-2 min-w-0 sm:gap-1">
                   <button
                     onClick={() => handleAdjustTokens(athlete, -1)}
                     aria-label={`Restar un token a ${athlete.displayName}`}
@@ -335,13 +341,13 @@ export const OwnerAdminPanel: React.FC<OwnerAdminPanelProps> = ({ currentUser, o
                       onKeyDown={e => { if (e.key === 'Enter') handleManualTokenGrant(athlete); }}
                       aria-label={`Cantidad de tokens para ${athlete.displayName}`}
                       placeholder="Cantidad"
-                      className="w-20 h-11 px-2 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm"
+                      className="w-24 sm:w-20 h-11 px-2 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm"
                     />
                     <button
                       type="button"
                       onClick={() => handleManualTokenGrant(athlete)}
                       disabled={!manualTokenAmounts[athlete.uid]}
-                      className="h-11 px-3 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 disabled:opacity-40 text-emerald-300 text-xs font-black"
+                      className="h-11 px-3 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 disabled:opacity-40 text-emerald-300 text-xs font-black whitespace-nowrap"
                     >
                       Asignar
                     </button>
@@ -349,7 +355,7 @@ export const OwnerAdminPanel: React.FC<OwnerAdminPanelProps> = ({ currentUser, o
                   <button
                     onClick={() => handleDeleteAthlete(athlete)}
                     aria-label={`Eliminar a ${athlete.displayName}`}
-                    className="h-11 w-11 rounded-xl bg-rose-500/15 hover:bg-rose-500/30 text-rose-300 flex items-center justify-center"
+                    className="h-11 w-11 shrink-0 rounded-xl bg-rose-500/15 hover:bg-rose-500/30 text-rose-300 flex items-center justify-center"
                   >
                     <Trash2 className="w-5 h-5" />
                   </button>

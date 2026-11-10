@@ -41,6 +41,7 @@ export const OwnerAdminPanel: React.FC<OwnerAdminPanelProps> = ({ currentUser, o
   const [searchQuery, setSearchQuery] = useState('');
   const [reservationSearch, setReservationSearch] = useState('');
   const [reservationDate, setReservationDate] = useState('');
+  const [manualTokenAmounts, setManualTokenAmounts] = useState<Record<string, string>>({});
   const [actionFeedback, setActionFeedback] = useState<string | null>(null);
 
   const [cancelDate, setCancelDate] = useState(() => getLocalDateString());
@@ -100,6 +101,51 @@ export const OwnerAdminPanel: React.FC<OwnerAdminPanelProps> = ({ currentUser, o
       setAthletes(list);
       onRefresh();
     }
+  };
+
+  const handleManualTokenGrant = async (athlete: UserProfile) => {
+    const amount = Number(manualTokenAmounts[athlete.uid]);
+    if (!Number.isSafeInteger(amount) || amount <= 0) {
+      setActionFeedback('Ingresá una cantidad entera de tokens mayor a cero.');
+      setTimeout(() => setActionFeedback(null), 4000);
+      return;
+    }
+    const reason = `Asignación manual por ${currentUser.displayName}`;
+    const result = await gymService.updateTokens(athlete.uid, amount, reason);
+    if (result.success) {
+      setManualTokenAmounts(previous => ({ ...previous, [athlete.uid]: '' }));
+      setActionFeedback(`Se asignaron ${amount} tokens a ${athlete.displayName}. Saldo: ${result.newTokens}`);
+      setTimeout(() => setActionFeedback(null), 4000);
+      const list = await gymService.refreshUsersFromFirestore();
+      setAthletes(list);
+      onRefresh();
+    }
+  };
+
+  const handleDeletePastBookings = async () => {
+    const first = window.confirm('¿Borrar el historial de reservas pasadas? Se eliminarán únicamente las clases cuya fecha y horario ya hayan pasado. Las reservas de hoy que todavía no comenzaron y todas las futuras se conservarán.');
+    if (!first) return;
+    const second = window.confirm('ATENCIÓN: esta acción es IRREVERSIBLE. Se eliminarán definitivamente las reservas pasadas y sus registros de asistencia. ¿Confirmás el borrado?');
+    if (!second) return;
+    const result = await gymService.deletePastBookings();
+    setActionFeedback(result.failed
+      ? `Se eliminaron ${result.deleted} reservas pasadas; ${result.failed} no pudieron borrarse.`
+      : `Historial de reservas pasadas eliminado (${result.deleted} registros).`);
+    setTimeout(() => setActionFeedback(null), 6000);
+    onRefresh();
+  };
+
+  const handleDeleteTokenHistory = async () => {
+    const first = window.confirm('¿Borrar el historial de asignaciones de tokens? Esto no modifica los saldos actuales de los atletas.');
+    if (!first) return;
+    const second = window.confirm('ATENCIÓN: esta acción es IRREVERSIBLE. Se eliminarán definitivamente todos los movimientos registrados de asignación de tokens. ¿Confirmás el borrado?');
+    if (!second) return;
+    const result = await gymService.deleteTokenHistory();
+    setActionFeedback(result.failed
+      ? `Se eliminaron ${result.deleted} movimientos; ${result.failed} no pudieron borrarse.`
+      : `Historial de tokens eliminado (${result.deleted} movimientos).`);
+    setTimeout(() => setActionFeedback(null), 6000);
+    onRefresh();
   };
 
   const handleCancelSlotSubmit = async (e: React.FormEvent) => {
@@ -240,7 +286,7 @@ export const OwnerAdminPanel: React.FC<OwnerAdminPanelProps> = ({ currentUser, o
           </div>
           {loadingAthletes && <p className="text-xs text-slate-500">Cargando atletas desde Firebase…</p>}
           <div className="rounded-2xl border border-slate-800 overflow-hidden">
-            <div className="grid grid-cols-[1fr_1.2fr_70px_205px] gap-2 px-4 py-2 text-[10px] uppercase tracking-wider text-slate-500 bg-slate-900/80">
+            <div className="grid grid-cols-[1fr_1.2fr_70px_300px] gap-2 px-4 py-2 text-[10px] uppercase tracking-wider text-slate-500 bg-slate-900/80">
               <span>Atleta</span>
               <span>Email</span>
               <span>Tokens</span>
@@ -252,7 +298,7 @@ export const OwnerAdminPanel: React.FC<OwnerAdminPanelProps> = ({ currentUser, o
             {filteredAthletes.map(athlete => (
               <div
                 key={athlete.uid}
-                className="grid grid-cols-[1fr_1.2fr_70px_205px] gap-2 px-4 py-3 border-t border-slate-800/80 items-center text-sm"
+                className="grid grid-cols-[1fr_1.2fr_70px_300px] gap-2 px-4 py-3 border-t border-slate-800/80 items-center text-sm"
               >
                 <div>
                   <span className="font-bold text-white block">{athlete.displayName}</span>
@@ -278,12 +324,28 @@ export const OwnerAdminPanel: React.FC<OwnerAdminPanelProps> = ({ currentUser, o
                   >
                     <Plus className="w-5 h-5" />
                   </button>
-                  <button
-                    onClick={() => handleAdjustTokens(athlete, 8)}
-                    className="h-11 px-3 rounded-xl bg-emerald-500/20 text-emerald-300 text-sm font-black"
-                  >
-                    +8
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="number"
+                      min="1"
+                      step="1"
+                      inputMode="numeric"
+                      value={manualTokenAmounts[athlete.uid] ?? ''}
+                      onChange={e => setManualTokenAmounts(previous => ({ ...previous, [athlete.uid]: e.target.value }))}
+                      onKeyDown={e => { if (e.key === 'Enter') handleManualTokenGrant(athlete); }}
+                      aria-label={`Cantidad de tokens para ${athlete.displayName}`}
+                      placeholder="Cantidad"
+                      className="w-20 h-11 px-2 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleManualTokenGrant(athlete)}
+                      disabled={!manualTokenAmounts[athlete.uid]}
+                      className="h-11 px-3 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 disabled:opacity-40 text-emerald-300 text-xs font-black"
+                    >
+                      Asignar
+                    </button>
+                  </div>
                   <button
                     onClick={() => handleDeleteAthlete(athlete)}
                     aria-label={`Eliminar a ${athlete.displayName}`}
@@ -484,6 +546,22 @@ export const OwnerAdminPanel: React.FC<OwnerAdminPanelProps> = ({ currentUser, o
 
       {activeTab === 'reservations' && (
         <div className="space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={handleDeletePastBookings}
+              className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 text-xs font-bold"
+            >
+              <Trash2 className="w-4 h-4" /> Borrar historial de reservas pasadas
+            </button>
+            <button
+              type="button"
+              onClick={handleDeleteTokenHistory}
+              className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 text-xs font-bold"
+            >
+              <Trash2 className="w-4 h-4" /> Borrar historial de tokens
+            </button>
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-[1fr_190px_auto] gap-2 p-3 rounded-2xl border border-slate-800 bg-slate-900/70">
             <div className="relative">
               <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />

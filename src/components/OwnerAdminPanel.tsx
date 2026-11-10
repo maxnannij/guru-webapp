@@ -249,7 +249,7 @@ export const OwnerAdminPanel: React.FC<OwnerAdminPanelProps> = ({ currentUser, o
           <form onSubmit={handleCancelSlotSubmit} className="space-y-3 p-4 rounded-2xl border border-slate-800 bg-slate-900">
             <div>
               <label className="text-xs text-slate-400 block mb-1">Fecha</label>
-              <input type="date" value={cancelDate} onChange={e => setCancelDate(e.target.value)}
+              <input type="date" value={cancelDate} onChange={e => { const date = e.target.value; setCancelDate(date); setCancelTime(getGymSlotTimesForDate(date)[0] || ''); }}
                 className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm" required />
             </div>
             <div>

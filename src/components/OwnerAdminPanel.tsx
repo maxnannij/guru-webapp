@@ -20,6 +20,14 @@ import { UserProfile, WOD, Booking, CancelledSlot } from '../types/gym';
 import { gymService } from '../services/gymService';
 import { getGymSlotTimesForDate, SlotTime } from '../utils/bookingRules';
 
+const getLocalDateString = () => {
+  const date = new Date();
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 interface OwnerAdminPanelProps {
   currentUser: UserProfile;
   onRefresh: () => void;
@@ -32,8 +40,8 @@ export const OwnerAdminPanel: React.FC<OwnerAdminPanelProps> = ({ currentUser, o
   const [searchQuery, setSearchQuery] = useState('');
   const [actionFeedback, setActionFeedback] = useState<string | null>(null);
 
-  const [cancelDate, setCancelDate] = useState(() => new Date().toISOString().split('T')[0]);
-  const [cancelTime, setCancelTime] = useState<string>('15:00');
+  const [cancelDate, setCancelDate] = useState(() => getLocalDateString());
+  const [cancelTime, setCancelTime] = useState<string>(() => getGymSlotTimesForDate(getLocalDateString())[0] || '');
   const [cancelReason, setCancelReason] = useState('Feriado / Mantenimiento del Box');
 
   const [wodDate, setWodDate] = useState(() => new Date().toISOString().split('T')[0]);

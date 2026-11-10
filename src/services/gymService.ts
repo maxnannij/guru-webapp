@@ -25,6 +25,7 @@ import {
   NotificationItem,
   TokenTransaction,
   CancelledSlot,
+  SpecialSlotLabel,
 } from '../types/gym';
 import {
   canBookSlot,
@@ -117,6 +118,7 @@ class GymService {
   private users: UserProfile[] = [];
   private bookings: Booking[] = [];
   private cancelledSlots: CancelledSlot[] = [];
+  private specialSlotLabels: SpecialSlotLabel[] = [];
   private wods: Record<string, WOD> = {};
   private notifications: NotificationItem[] = [];
   private currentUserId: string | null = null;
@@ -133,6 +135,7 @@ class GymService {
     this.users = [...SEED_USERS];
     this.bookings = [...SEED_BOOKINGS];
     this.cancelledSlots = [];
+    this.specialSlotLabels = [];
     this.wods = { ...SEED_WODS };
     this.notifications = [...SEED_NOTIFICATIONS];
     this.currentUserId = null;
@@ -195,6 +198,18 @@ class GymService {
       this.cancelledSlots = remoteCancelled;
     } catch (error) {
       console.warn('refreshSharedData cancelledSlots notice:', error);
+    }
+
+    try {
+      const labelSnap = await getDocs(collection(db, 'specialSlotLabels'));
+      const remoteLabels: SpecialSlotLabel[] = [];
+      labelSnap.forEach(d => {
+        const data = d.data() as SpecialSlotLabel;
+        if (data) remoteLabels.push({ ...data, id: data.id || d.id });
+      });
+      this.specialSlotLabels = remoteLabels;
+    } catch (error) {
+      console.warn('refreshSharedData special slot labels notice:', error);
     }
 
     try {
@@ -572,6 +587,54 @@ class GymService {
 
   getCancelledSlots(): CancelledSlot[] {
     return [...this.cancelledSlots];
+  }
+
+  getSpecialSlotLabels(): SpecialSlotLabel[] {
+    return [...this.specialSlotLabels].sort((a, b) => `${a.slotDate} ${a.slotTime}`.localeCompare(`${b.slotDate} ${b.slotTime}`));
+  }
+
+  getSpecialSlotLabel(date: string, time: string): SpecialSlotLabel | undefined {
+    return this.specialSlotLabels.find(item => item.slotDate === date && item.slotTime === time);
+  }
+
+  async saveSpecialSlotLabel(date: string, time: string, title: string, updatedBy: string): Promise<{ success: boolean; message: string }> {
+    const cleanTitle = title.trim();
+    if (!cleanTitle) return { success: false, message: 'Ingresá un nombre para el turno.' };
+    if (!(getGymSlotTimesForDate(date) as readonly string[]).includes(time)) return { success: false, message: 'Ese horario no corresponde a la fecha seleccionada.' };
+    const id = `${date}_${time}`;
+    const label: SpecialSlotLabel = { id, slotDate: date, slotTime: time, title: cleanTitle.slice(0, 60), updatedBy, updatedAt: new Date().toISOString() };
+    try {
+      await setDoc(doc(db, 'specialSlotLabels', id), this.cleanObject(label), { merge: true });
+      this.specialSlotLabels = this.specialSlotLabels.filter(item => item.id !== id).concat(label);
+      return { success: true, message: `Se guardó «${label.title}» para el ${date} a las ${time} hs.` };
+    } catch (error) {
+      console.error('saveSpecialSlotLabel error:', error);
+      return { success: false, message: 'No se pudo guardar el nombre del turno. Revisá la conexión.' };
+    }
+  }
+
+  async deleteSpecialSlotLabel(date: string, time: string): Promise<{ success: boolean; message: string }> {
+    const id = `${date}_${time}`;
+    try {
+      await deleteDoc(doc(db, 'specialSlotLabels', id));
+      this.specialSlotLabels = this.specialSlotLabels.filter(item => item.id !== id);
+      return { success: true, message: 'Se quitó el nombre especial del turno.' };
+    } catch (error) {
+      console.error('deleteSpecialSlotLabel error:', error);
+      return { success: false, message: 'No se pudo quitar el nombre especial.' };
+    }
+  }
+
+  async setRulesPopupPreference(userId: string, hide: boolean): Promise<boolean> {
+    try {
+      await setDoc(doc(db, 'users', userId), { hideRulesPopup: hide }, { merge: true });
+      const user = this.users.find(item => item.uid === userId);
+      if (user) user.hideRulesPopup = hide;
+      return true;
+    } catch (error) {
+      console.warn('No se pudo guardar la preferencia de reglas:', error);
+      return false;
+    }
   }
 
   async deleteAthleteProfile(athleteId: string): Promise<{ success: boolean; error?: string }> {

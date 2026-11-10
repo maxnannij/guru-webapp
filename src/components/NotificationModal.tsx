@@ -52,7 +52,7 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
             <div>
               <h2 className="text-base font-semibold text-slate-100">Centro de Notificaciones</h2>
               <p className="text-xs text-slate-400">
-                {role === 'owner' ? 'Avisos para Dueños / Coaches' : 'Turnos y avisos del gimnasio'}
+                {role === 'owner' ? 'Avisos para Coaches' : 'Turnos y avisos del gimnasio'}
               </p>
             </div>
           </div>

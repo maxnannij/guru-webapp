@@ -215,7 +215,14 @@ class GymService {
         const data = d.data() as NotificationItem;
         if (data) remoteNotifications.push({ ...data, id: data.id || d.id });
       });
-      this.notifications = remoteNotifications;
+      const unreadNotifications = remoteNotifications.filter(notification => !notification.read);
+      const readNotifications = remoteNotifications.filter(notification => notification.read);
+      this.notifications = unreadNotifications;
+      await Promise.all(readNotifications.map(notification =>
+        deleteDoc(doc(db, 'notifications', notification.id)).catch(error =>
+          console.warn('No se pudo limpiar una notificación ya leída:', error)
+        )
+      ));
     } catch (error) {
       console.warn('refreshSharedData notifications notice:', error);
     }
@@ -738,6 +745,7 @@ class GymService {
   getNotifications(userId: string, role: string): NotificationItem[] {
     return this.notifications
       .filter(n => {
+        if (n.read) return false;
         if (role === 'owner') {
           return n.type === 'booking' &&
             (n.recipientId === 'owners' || n.recipientRole === 'owner');

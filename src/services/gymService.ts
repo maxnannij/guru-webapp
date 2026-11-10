@@ -480,6 +480,9 @@ class GymService {
     reason: string,
     cancelledBy: string
   ): Promise<{ success: boolean; refundedCount: number; message: string }> {
+    if (!(getGymSlotTimesForDate(date) as readonly string[]).includes(time)) {
+      return { success: false, refundedCount: 0, message: 'Ese horario no está disponible para el día seleccionado.' };
+    }
     await this.refreshSharedData();
 
     if (this.isSlotCancelled(date, time)) {

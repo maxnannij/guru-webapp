@@ -752,6 +752,48 @@ class GymService {
     return [...this.tokenTransactions].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   }
 
+  async deletePastBookings(): Promise<{ deleted: number; failed: number }> {
+    const now = new Date();
+    const today = [
+      now.getFullYear(),
+      String(now.getMonth() + 1).padStart(2, '0'),
+      String(now.getDate()).padStart(2, '0'),
+    ].join('-');
+    const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    const pastBookings = this.bookings.filter(booking =>
+      booking.slotDate < today ||
+      (booking.slotDate === today && booking.slotTime <= currentTime)
+    );
+    const results = await Promise.allSettled(
+      pastBookings.map(booking => deleteDoc(doc(db, 'bookings', booking.id)))
+    );
+    const deletedIds = new Set<string>();
+    let failed = 0;
+    results.forEach((result, index) => {
+      if (result.status === 'fulfilled') deletedIds.add(pastBookings[index].id);
+      else failed += 1;
+    });
+    this.bookings = this.bookings.filter(booking => !deletedIds.has(booking.id));
+    this.persistState();
+    return { deleted: deletedIds.size, failed };
+  }
+
+  async deleteTokenHistory(): Promise<{ deleted: number; failed: number }> {
+    const transactions = [...this.tokenTransactions];
+    const results = await Promise.allSettled(
+      transactions.map(transaction => deleteDoc(doc(db, 'transactions', transaction.id)))
+    );
+    const deletedIds = new Set<string>();
+    let failed = 0;
+    results.forEach((result, index) => {
+      if (result.status === 'fulfilled') deletedIds.add(transactions[index].id);
+      else failed += 1;
+    });
+    this.tokenTransactions = this.tokenTransactions.filter(transaction => !deletedIds.has(transaction.id));
+    this.persistState();
+    return { deleted: deletedIds.size, failed };
+  }
+
   bookSlot(params: {
     slotDate: string;
     slotTime: string;

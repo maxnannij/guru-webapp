@@ -31,6 +31,8 @@ import {
   canCancelWithoutPenalty,
   deductToken,
   processCancellationRefund,
+  getGymSlotTimesForDate,
+  getMinutesUntilSlot,
 } from '../utils/bookingRules';
 
 export const GYM_LOCATION = {
@@ -635,6 +637,12 @@ class GymService {
     athlete: UserProfile;
   }): { success: boolean; booking?: Booking; error?: string } {
     const { slotDate, slotTime, athlete } = params;
+    if (!(getGymSlotTimesForDate(slotDate) as readonly string[]).includes(slotTime)) {
+      return { success: false, error: 'Ese horario no está disponible para el día seleccionado.' };
+    }
+    if (getMinutesUntilSlot(slotDate, slotTime) <= 0) {
+      return { success: false, error: 'No se puede reservar un turno que ya comenzó o pasó.' };
+    }
     const isCancelled = this.isSlotCancelled(slotDate, slotTime);
     if (isCancelled) {
       const info = this.getCancelledSlot(slotDate, slotTime);

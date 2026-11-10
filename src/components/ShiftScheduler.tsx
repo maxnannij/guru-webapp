@@ -62,6 +62,9 @@ export const ShiftScheduler: React.FC<ShiftSchedulerProps> = ({
   });
 
   const [selectedDate, setSelectedDate] = useState<string>(days[0].isoDate);
+  useEffect(() => {
+    setSelectedDate(days[0].isoDate);
+  }, [days[0].isoDate]);
   const [selectedSlotForBooking, setSelectedSlotForBooking] = useState<SlotTime | null>(null);
   const [bookingNotice, setBookingNotice] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 

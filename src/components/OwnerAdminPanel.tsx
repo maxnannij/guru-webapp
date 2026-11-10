@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { UserProfile, WOD, Booking, CancelledSlot } from '../types/gym';
 import { gymService } from '../services/gymService';
-import { GYM_SLOT_TIMES, SlotTime } from '../utils/bookingRules';
+import { getGymSlotTimesForDate, SlotTime } from '../utils/bookingRules';
 
 interface OwnerAdminPanelProps {
   currentUser: UserProfile;
@@ -256,7 +256,7 @@ export const OwnerAdminPanel: React.FC<OwnerAdminPanelProps> = ({ currentUser, o
               <label className="text-xs text-slate-400 block mb-1">Horario</label>
               <select value={cancelTime} onChange={e => setCancelTime(e.target.value)}
                 className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm">
-                {GYM_SLOT_TIMES.map(t => (
+                {getGymSlotTimesForDate(cancelDate).map(t => (
                   <option key={t} value={t}>{t}</option>
                 ))}
               </select>

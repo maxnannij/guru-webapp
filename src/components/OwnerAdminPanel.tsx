@@ -178,11 +178,11 @@ export const OwnerAdminPanel: React.FC<OwnerAdminPanelProps> = ({ currentUser, o
           </div>
           {loadingAthletes && <p className="text-xs text-slate-500">Cargando atletas desde Firebase…</p>}
           <div className="rounded-2xl border border-slate-800 overflow-hidden">
-            <div className="grid grid-cols-[1fr_1.2fr_80px_120px] gap-2 px-4 py-2 text-[10px] uppercase tracking-wider text-slate-500 bg-slate-900/80">
+            <div className="grid grid-cols-[1fr_1.2fr_70px_205px] gap-2 px-4 py-2 text-[10px] uppercase tracking-wider text-slate-500 bg-slate-900/80">
               <span>Atleta</span>
               <span>Email</span>
               <span>Tokens</span>
-              <span>Asignar</span>
+              <span>Tokens / acciones</span>
             </div>
             {filteredAthletes.length === 0 && !loadingAthletes && (
               <p className="p-6 text-center text-sm text-slate-500">No hay atletas registrados aún.</p>
@@ -190,7 +190,7 @@ export const OwnerAdminPanel: React.FC<OwnerAdminPanelProps> = ({ currentUser, o
             {filteredAthletes.map(athlete => (
               <div
                 key={athlete.uid}
-                className="grid grid-cols-[1fr_1.2fr_80px_120px] gap-2 px-4 py-3 border-t border-slate-800/80 items-center text-sm"
+                className="grid grid-cols-[1fr_1.2fr_70px_205px] gap-2 px-4 py-3 border-t border-slate-800/80 items-center text-sm"
               >
                 <div>
                   <span className="font-bold text-white block">{athlete.displayName}</span>

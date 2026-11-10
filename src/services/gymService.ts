@@ -47,16 +47,6 @@ function getTodayString(offsetDays = 0): string {
   return d.toISOString().split('T')[0];
 }
 
-const STORAGE_KEYS = {
-  USERS: 'gurubox_users_v3',
-  BOOKINGS: 'gurubox_bookings_v3',
-  CANCELLED_SLOTS: 'gurubox_cancelled_slots_v3',
-  WODS: 'gurubox_wods_v3',
-  NOTIFICATIONS: 'gurubox_notifications_v3',
-  CURRENT_USER_ID: 'gurubox_current_uid_v3',
-  PASSWORDS: 'gurubox_passwords_v3',
-};
-
 const SEED_USERS: UserProfile[] = [
   {
     uid: 'owner_melina',
@@ -127,7 +117,6 @@ class GymService {
   private cancelledSlots: CancelledSlot[] = [];
   private wods: Record<string, WOD> = {};
   private notifications: NotificationItem[] = [];
-  private authPasswords: Record<string, string> = {};
   private currentUserId: string | null = null;
   private isPushSupported: boolean = typeof window !== 'undefined' && 'Notification' in window;
   private pushPermission: NotificationPermission =
@@ -138,63 +127,17 @@ class GymService {
   }
 
   private loadState() {
-    if (typeof window === 'undefined') return;
-    try {
-      const storedUsers = localStorage.getItem(STORAGE_KEYS.USERS);
-      this.users = storedUsers ? JSON.parse(storedUsers) : [...SEED_USERS];
-      const oldMockUids = new Set([
-        'athlete_lucas', 'athlete_sofia', 'athlete_mateo', 'athlete_camila',
-        'ath_seed_1', 'ath_seed_2', 'ath_seed_3', 'ath_seed_4', 'ath_seed_5', 'ath_seed_6', 'ath_seed_7',
-      ]);
-      this.users = this.users.filter(
-        u => u.role === 'owner' || (!oldMockUids.has(u.uid) && !u.uid.startsWith('ath_seed_'))
-      );
-      if (!this.users.some(u => u.email === 'melina@gurubox.com')) this.users.unshift(SEED_USERS[0]);
-      if (!this.users.some(u => u.email === 'alexis@gurubox.com')) this.users.splice(1, 0, SEED_USERS[1]);
-
-      const storedPasswords = localStorage.getItem(STORAGE_KEYS.PASSWORDS);
-      this.authPasswords = storedPasswords ? JSON.parse(storedPasswords) : {};
-      this.authPasswords['melina'] = 'meliguru';
-      this.authPasswords['melina@gurubox.com'] = 'meliguru';
-      this.authPasswords['alexis'] = 'alexguru';
-      this.authPasswords['alexis@gurubox.com'] = 'alexguru';
-
-      const storedBookings = localStorage.getItem(STORAGE_KEYS.BOOKINGS);
-      this.bookings = storedBookings ? JSON.parse(storedBookings) : [...SEED_BOOKINGS];
-      this.bookings = this.bookings.filter(b => !oldMockUids.has(b.athleteId));
-
-      const storedCancelled = localStorage.getItem(STORAGE_KEYS.CANCELLED_SLOTS);
-      this.cancelledSlots = storedCancelled ? JSON.parse(storedCancelled) : [];
-      const storedWods = localStorage.getItem(STORAGE_KEYS.WODS);
-      this.wods = storedWods ? JSON.parse(storedWods) : { ...SEED_WODS };
-      const storedNotifications = localStorage.getItem(STORAGE_KEYS.NOTIFICATIONS);
-      this.notifications = storedNotifications ? JSON.parse(storedNotifications) : [...SEED_NOTIFICATIONS];
-      const storedUid = localStorage.getItem(STORAGE_KEYS.CURRENT_USER_ID);
-      if (storedUid && this.users.some(u => u.uid === storedUid)) this.currentUserId = storedUid;
-    } catch (e) {
-      console.warn('Error reading localStorage, using defaults', e);
-      this.users = [...SEED_USERS];
-      this.bookings = [];
-      this.cancelledSlots = [];
-      this.wods = { ...SEED_WODS };
-      this.notifications = [...SEED_NOTIFICATIONS];
-    }
+    // Los datos operativos se consultan desde Firestore y solo viven en memoria.
+    this.users = [...SEED_USERS];
+    this.bookings = [...SEED_BOOKINGS];
+    this.cancelledSlots = [];
+    this.wods = { ...SEED_WODS };
+    this.notifications = [...SEED_NOTIFICATIONS];
+    this.currentUserId = null;
   }
 
   private persistState() {
-    if (typeof window === 'undefined') return;
-    try {
-      localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(this.users));
-      localStorage.setItem(STORAGE_KEYS.BOOKINGS, JSON.stringify(this.bookings));
-      localStorage.setItem(STORAGE_KEYS.CANCELLED_SLOTS, JSON.stringify(this.cancelledSlots));
-      localStorage.setItem(STORAGE_KEYS.WODS, JSON.stringify(this.wods));
-      localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(this.notifications));
-      localStorage.setItem(STORAGE_KEYS.PASSWORDS, JSON.stringify(this.authPasswords));
-      if (this.currentUserId) localStorage.setItem(STORAGE_KEYS.CURRENT_USER_ID, this.currentUserId);
-      else localStorage.removeItem(STORAGE_KEYS.CURRENT_USER_ID);
-    } catch (e) {
-      console.warn('Error saving state to localStorage', e);
-    }
+    // Intencionalmente vacío: no se persisten datos en el almacenamiento del navegador.
   }
 
   private cleanObject<T extends Record<string, any>>(obj: T): Record<string, any> {

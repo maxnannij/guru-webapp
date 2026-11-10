@@ -1,5 +1,5 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import { initializeAuth, inMemoryPersistence } from 'firebase/auth';
 import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 
@@ -11,7 +11,7 @@ const databaseId =
     : undefined;
 
 export const db = databaseId ? getFirestore(app, databaseId) : getFirestore(app);
-export const auth = getAuth(app);
+export const auth = initializeAuth(app, { persistence: inMemoryPersistence });
 
 export enum OperationType {
   CREATE = 'create',

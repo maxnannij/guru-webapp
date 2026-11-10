@@ -45,11 +45,6 @@ export const OwnerAdminPanel: React.FC<OwnerAdminPanelProps> = ({ currentUser, o
   const [wodNotes, setWodNotes] = useState('');
   const [wodCoach, setWodCoach] = useState(currentUser.displayName);
 
-  const [attendanceDate, setAttendanceDate] = useState(() => new Date().toISOString().split('T')[0]);
-  const [attendanceTime, setAttendanceTime] = useState<string>('15:00');
-
-  const currentWod = gymService.getWOD(attendanceDate);
-
   const [athletes, setAthletes] = useState<UserProfile[]>(() => gymService.getAthletes());
   const [loadingAthletes, setLoadingAthletes] = useState(true);
 
@@ -127,7 +122,20 @@ export const OwnerAdminPanel: React.FC<OwnerAdminPanelProps> = ({ currentUser, o
     onRefresh();
   };
 
-  const slotBookings = gymService.getBookingsForSlot(attendanceDate, attendanceTime);
+  const todayForAttendance = (() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  })();
+  const attendanceBookings = gymService.getAllBookings()
+    .filter(booking => booking.status === 'confirmed' && booking.slotDate >= todayForAttendance)
+    .sort((a, b) => `${a.slotDate} ${a.slotTime}`.localeCompare(`${b.slotDate} ${b.slotTime}`));
+  const attendanceByDate = attendanceBookings.reduce<Record<string, Booking[]>>((groups, booking) => {
+    (groups[booking.slotDate] ||= []).push(booking);
+    return groups;
+  }, {});
   const cancelledSlots = gymService.getCancelledSlots();
   const allBookings = gymService.getAllBookings().slice(0, 30);
 
@@ -326,36 +334,77 @@ export const OwnerAdminPanel: React.FC<OwnerAdminPanelProps> = ({ currentUser, o
       )}
 
       {activeTab === 'attendance' && (
-        <div className="space-y-3">
-          <div className="flex flex-wrap gap-3">
-            <input type="date" value={attendanceDate} onChange={e => setAttendanceDate(e.target.value)}
-              className="px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-sm" />
-            <select value={attendanceTime} onChange={e => setAttendanceTime(e.target.value)}
-              className="px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-sm">
-              {GYM_SLOT_TIMES.map(t => <option key={t} value={t}>{t}</option>)}
-            </select>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h3 className="text-sm font-black text-white">Asistencia y turnos próximos</h3>
+              <p className="text-xs text-slate-400 mt-1">Reservas confirmadas desde hoy en adelante.</p>
+            </div>
+            <span className="text-xs font-bold text-emerald-300 bg-emerald-500/10 px-3 py-2 rounded-xl">
+              {attendanceBookings.length} reservas
+            </span>
           </div>
-          <div className="rounded-2xl border border-slate-800 divide-y divide-slate-800">
-            {slotBookings.length === 0 && (
-              <p className="p-6 text-center text-sm text-slate-500">Sin reservas confirmadas en este turno.</p>
-            )}
-            {slotBookings.map(b => (
-              <div key={b.id} className="flex items-center justify-between px-4 py-3 text-sm">
-                <div>
-                  <span className="font-bold text-white">{b.athleteName}</span>
-                  <span className="text-xs text-slate-500 block">{b.athleteEmail}</span>
+
+          {attendanceBookings.length === 0 && (
+            <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-8 text-center">
+              <ClipboardList className="w-8 h-8 text-slate-600 mx-auto mb-2" />
+              <p className="text-sm text-slate-400">No hay reservas confirmadas para hoy ni para los próximos días.</p>
+            </div>
+          )}
+
+          {Object.entries(attendanceByDate).map(([date, bookings]) => {
+            const [year, month, day] = date.split('-').map(Number);
+            const dateLabel = new Date(year, month - 1, day).toLocaleDateString('es-AR', {
+              weekday: 'long',
+              day: 'numeric',
+              month: 'long',
+              year: 'numeric',
+            });
+            const byTime = bookings.reduce<Record<string, Booking[]>>((groups, booking) => {
+              (groups[booking.slotTime] ||= []).push(booking);
+              return groups;
+            }, {});
+
+            return (
+              <section key={date} className="rounded-2xl border border-slate-800 overflow-hidden">
+                <div className="px-4 py-3 bg-slate-900 border-b border-slate-800 flex items-center justify-between gap-2">
+                  <h4 className="text-sm font-black text-white capitalize">{dateLabel}</h4>
+                  <span className="text-[11px] text-slate-400">{bookings.length} {bookings.length === 1 ? 'reserva' : 'reservas'}</span>
                 </div>
-                <button
-                  onClick={() => { gymService.markAttendance(b.id, !b.attended); onRefresh(); }}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold ${
-                    b.attended ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-800 text-slate-400'
-                  }`}
-                >
-                  {b.attended ? 'Presente' : 'Marcar'}
-                </button>
-              </div>
-            ))}
-          </div>
+
+                <div className="divide-y divide-slate-800">
+                  {Object.entries(byTime).sort(([a], [b]) => a.localeCompare(b)).map(([time, timeBookings]) => (
+                    <div key={time} className="p-3 sm:p-4 space-y-2">
+                      <div className="flex items-center gap-2 text-emerald-300">
+                        <Clock className="w-4 h-4" />
+                        <span className="text-sm font-black">{time}</span>
+                        <span className="text-[10px] text-slate-500">{timeBookings.length}/8 atletas</span>
+                      </div>
+
+                      <div className="space-y-2">
+                        {timeBookings.map(booking => (
+                          <div key={booking.id} className="flex items-center justify-between gap-3 rounded-xl bg-slate-950/70 px-3 py-2.5">
+                            <div className="min-w-0">
+                              <span className="font-bold text-white text-sm block truncate">{booking.athleteName}</span>
+                              <span className="text-[11px] text-slate-500 block truncate">{booking.athleteEmail}</span>
+                            </div>
+                            <button
+                              onClick={() => { gymService.markAttendance(booking.id, !booking.attended); onRefresh(); }}
+                              className={`shrink-0 min-w-[104px] px-3 py-2 rounded-lg text-xs font-bold ${
+                                booking.attended ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-800 text-slate-300 hover:bg-emerald-500/15 hover:text-emerald-300'
+                              }`}
+                            >
+                              {booking.attended ? 'Presente' : 'Marcar presente'}
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            );
+          })}
         </div>
       )}
 

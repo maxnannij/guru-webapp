@@ -617,6 +617,22 @@ class GymService {
     return [...this.cancelledSlots];
   }
 
+  async deleteAthleteProfile(athleteId: string): Promise<{ success: boolean; error?: string }> {
+    const user = this.users.find(u => u.uid === athleteId);
+    if (!user || user.role !== 'athlete') {
+      return { success: false, error: 'No se encontró un atleta válido para eliminar.' };
+    }
+    try {
+      await deleteDoc(doc(db, 'users', athleteId));
+      this.users = this.users.filter(u => u.uid !== athleteId);
+      this.persistState();
+      return { success: true };
+    } catch (error: any) {
+      console.error('deleteAthleteProfile error:', error);
+      return { success: false, error: error?.message || 'No se pudo eliminar la ficha del atleta.' };
+    }
+  }
+
   async updateTokens(athleteId: string, amount: number, reason: string): Promise<{ success: boolean; newTokens: number }> {
     const user = this.users.find(u => u.uid === athleteId);
     if (!user) return { success: false, newTokens: 0 };

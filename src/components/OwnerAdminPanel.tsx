@@ -146,7 +146,7 @@ export const OwnerAdminPanel: React.FC<OwnerAdminPanelProps> = ({ currentUser, o
   return (
     <div className="space-y-5">
       <div className="p-4 rounded-2xl border border-emerald-500/30 bg-slate-900/80">
-        <h2 className="text-lg font-black text-white">Panel de Dueño: {currentUser.displayName}</h2>
+        <h2 className="text-lg font-black text-white">Panel de Coach: {currentUser.displayName}</h2>
         <p className="text-xs text-slate-400 mt-1">Atletas se cargan desde Firebase (proyecto Guru Box).</p>
       </div>
 

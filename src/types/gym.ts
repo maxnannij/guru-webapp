@@ -79,5 +79,7 @@ export interface TokenTransaction {
   amount: number; // positive for addition, negative for deduction
   type: 'admin_grant' | 'booking_spent' | 'booking_refund';
   reference?: string;
+  coachName?: string;
+  reason?: string;
   createdAt: string;
 }

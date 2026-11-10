@@ -10,6 +10,7 @@ import { MyBookingsView } from './components/MyBookingsView';
 import { WodView } from './components/WodView';
 import { OwnerAdminPanel } from './components/OwnerAdminPanel';
 import { NotificationModal } from './components/NotificationModal';
+import { RulesWelcomeModal } from './components/RulesWelcomeModal';
 import { LoginScreen } from './components/LoginScreen';
 import { gymService, GYM_LOCATION } from './services/gymService';
 import { UserProfile } from './types/gym';
@@ -24,6 +25,10 @@ export default function App() {
   const [refreshKey, setRefreshKey] = useState(0);
 
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [isRulesModalOpen, setIsRulesModalOpen] = useState(() => {
+    const user = gymService.getCurrentUser();
+    return Boolean(user && user.hideRulesPopup !== true);
+  });
   const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
 
   useEffect(() => {
@@ -95,6 +100,7 @@ export default function App() {
 
   const handleLoginSuccess = (user: UserProfile) => {
     setCurrentUser(user);
+    setIsRulesModalOpen(user.hideRulesPopup !== true);
     if (user.role === 'owner') {
       setActiveView('owner_admin');
     } else {
@@ -207,6 +213,17 @@ export default function App() {
           </div>
         </div>
       </footer>
+
+      <RulesWelcomeModal
+        isOpen={isRulesModalOpen}
+        onContinue={async (dontShowAgain) => {
+          if (currentUser) {
+            const saved = await gymService.setRulesPopupPreference(currentUser.uid, dontShowAgain);
+            if (saved) setCurrentUser(prev => prev ? { ...prev, hideRulesPopup: dontShowAgain } : prev);
+          }
+          setIsRulesModalOpen(false);
+        }}
+      />
 
       <NotificationModal
         isOpen={isNotificationsOpen}

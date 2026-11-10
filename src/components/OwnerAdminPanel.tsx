@@ -169,12 +169,26 @@ export const OwnerAdminPanel: React.FC<OwnerAdminPanelProps> = ({ currentUser, o
   const cancelledSlots = gymService.getCancelledSlots();
   const specialSlotLabels = gymService.getSpecialSlotLabels();
   const allBookings = gymService.getAllBookings();
+  const tokenTransactions = gymService.getTokenTransactions();
+  const query = reservationSearch.trim().toLowerCase();
   const filteredBookings = allBookings.filter(booking => {
-    const query = reservationSearch.trim().toLowerCase();
     const matchesAthlete = !query ||
       booking.athleteName.toLowerCase().includes(query) ||
       booking.athleteEmail.toLowerCase().includes(query);
     const matchesDate = !reservationDate || booking.slotDate === reservationDate;
+    return matchesAthlete && matchesDate;
+  });
+  const filteredTokenTransactions = tokenTransactions.filter(transaction => {
+    const matchesAthlete = !query ||
+      transaction.athleteName.toLowerCase().includes(query) ||
+      (transaction.coachName || '').toLowerCase().includes(query);
+    const transactionDate = new Date(transaction.createdAt);
+    const localDate = [
+      transactionDate.getFullYear(),
+      String(transactionDate.getMonth() + 1).padStart(2, '0'),
+      String(transactionDate.getDate()).padStart(2, '0'),
+    ].join('-');
+    const matchesDate = !reservationDate || localDate === reservationDate;
     return matchesAthlete && matchesDate;
   });
 
@@ -210,7 +224,7 @@ export const OwnerAdminPanel: React.FC<OwnerAdminPanelProps> = ({ currentUser, o
         {tabBtn('special_slots', 'Nombres especiales', <Tag className="w-4 h-4" />)}
         {tabBtn('wod_builder', 'Cargar WOD', <Dumbbell className="w-4 h-4" />)}
         {tabBtn('attendance', 'Asistencia', <ClipboardList className="w-4 h-4" />)}
-        {tabBtn('reservations', 'Reservas', <Bell className="w-4 h-4" />)}
+        {tabBtn('reservations', 'Historial', <Bell className="w-4 h-4" />)}
       </div>
 
       {activeTab === 'tokens' && (
@@ -504,30 +518,57 @@ export const OwnerAdminPanel: React.FC<OwnerAdminPanelProps> = ({ currentUser, o
 
           <div className="flex items-center justify-between px-1">
             <span className="text-xs text-slate-400">
-              {filteredBookings.length} de {allBookings.length} reservas
+              {filteredBookings.length} reservas · {filteredTokenTransactions.length} asignaciones de tokens
             </span>
             {(reservationSearch || reservationDate) && (
               <span className="text-[11px] text-emerald-300">Filtros activos</span>
             )}
           </div>
 
-          <div className="rounded-2xl border border-slate-800 divide-y divide-slate-800 overflow-hidden">
-            {filteredBookings.length === 0 ? (
-              <p className="p-6 text-center text-sm text-slate-500">
-                {allBookings.length === 0 ? 'Aún no hay reservas.' : 'No se encontraron reservas con esos filtros.'}
-              </p>
-            ) : filteredBookings.map(b => (
-              <div key={b.id} className="px-4 py-3 text-sm flex flex-wrap items-center justify-between gap-2">
-                <div className="min-w-0">
-                  <span className="font-bold text-white block">{b.athleteName}</span>
-                  <span className="text-xs text-slate-500 block">{b.athleteEmail}</span>
-                  <span className="text-xs text-slate-400 block">{b.slotDate} · {b.slotTime} hs</span>
+          <div className="space-y-2">
+            <h3 className="px-1 text-xs font-bold uppercase tracking-wider text-slate-400">Movimientos de tokens</h3>
+            <div className="rounded-2xl border border-slate-800 divide-y divide-slate-800 overflow-hidden">
+              {filteredTokenTransactions.length === 0 ? (
+                <p className="p-4 text-center text-xs text-slate-500">
+                  {tokenTransactions.length === 0 ? 'Todavía no hay asignaciones registradas.' : 'No hay asignaciones que coincidan con los filtros.'}
+                </p>
+              ) : filteredTokenTransactions.map(transaction => (
+                <div key={transaction.id} className="px-4 py-3 text-sm flex flex-wrap items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <span className="font-bold text-white block">{transaction.athleteName}</span>
+                    <span className="text-xs text-slate-400 block">
+                      Asignó {transaction.coachName || 'Coach'} · {new Date(transaction.createdAt).toLocaleString('es-AR')}
+                    </span>
+                    {transaction.reason && <span className="text-[11px] text-slate-500 block">{transaction.reason}</span>}
+                  </div>
+                  <span className="inline-flex items-center gap-1 rounded-lg bg-emerald-500/15 px-2.5 py-1.5 text-xs font-black text-emerald-300">
+                    <Zap className="w-3.5 h-3.5" /> +{transaction.amount} tokens
+                  </span>
                 </div>
-                <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded-lg ${
-                  b.status === 'confirmed' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-800 text-slate-400'
-                }`}>{b.status}</span>
-              </div>
-            ))}
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <h3 className="px-1 text-xs font-bold uppercase tracking-wider text-slate-400">Reservas</h3>
+            <div className="rounded-2xl border border-slate-800 divide-y divide-slate-800 overflow-hidden">
+              {filteredBookings.length === 0 ? (
+                <p className="p-4 text-center text-xs text-slate-500">
+                  {allBookings.length === 0 ? 'Aún no hay reservas.' : 'No se encontraron reservas con esos filtros.'}
+                </p>
+              ) : filteredBookings.map(b => (
+                <div key={b.id} className="px-4 py-3 text-sm flex flex-wrap items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <span className="font-bold text-white block">{b.athleteName}</span>
+                    <span className="text-xs text-slate-500 block">{b.athleteEmail}</span>
+                    <span className="text-xs text-slate-400 block">{b.slotDate} · {b.slotTime} hs</span>
+                  </div>
+                  <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded-lg ${
+                    b.status === 'confirmed' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-800 text-slate-400'
+                  }`}>{b.status}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}

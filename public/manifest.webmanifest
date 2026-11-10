@@ -1,0 +1,26 @@
+{
+  "id": "/",
+  "name": "Gurú Box - Turnos & WOD",
+  "short_name": "Gurú Box",
+  "description": "Webapp para reserva de turnos, cupos, gestión de tokens y WOD para atletas y coaches.",
+  "theme_color": "#050811",
+  "background_color": "#020617",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "start_url": "/",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/pwa-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

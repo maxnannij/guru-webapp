@@ -13,7 +13,7 @@ import {
   MapPin,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { GYM_SLOT_TIMES, getGymSlotTimesForDate, SlotTime, MAX_SLOT_CAPACITY, formatDateLabel } from '../utils/bookingRules';
+import { getGymSlotTimesForDate, SlotTime, MAX_SLOT_CAPACITY, formatDateLabel } from '../utils/bookingRules';
 import { UserProfile, Booking } from '../types/gym';
 import { gymService } from '../services/gymService';
 

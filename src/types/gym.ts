@@ -9,6 +9,7 @@ export interface UserProfile {
   phone?: string;
   avatarUrl?: string;
   createdAt: string;
+  hideRulesPopup?: boolean;
 }
 
 export type BookingStatus = 'confirmed' | 'cancelled_refunded' | 'cancelled_penalty' | 'cancelled_by_owner';
@@ -25,6 +26,15 @@ export interface Booking {
   bookedAt: string;
   cancelledAt?: string;
   penaltyReason?: string;
+}
+
+export interface SpecialSlotLabel {
+  id: string;
+  slotDate: string;
+  slotTime: string;
+  title: string;
+  updatedBy: string;
+  updatedAt: string;
 }
 
 export interface CancelledSlot {

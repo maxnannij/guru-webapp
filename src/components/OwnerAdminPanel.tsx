@@ -14,6 +14,7 @@ import {
   Save,
   ClipboardList,
   Bell,
+  Trash2,
 } from 'lucide-react';
 import { UserProfile, WOD, Booking, CancelledSlot } from '../types/gym';
 import { gymService } from '../services/gymService';
@@ -66,6 +67,19 @@ export const OwnerAdminPanel: React.FC<OwnerAdminPanelProps> = ({ currentUser, o
       a.displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       a.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const handleDeleteAthlete = async (athlete: UserProfile) => {
+    const confirmed = window.confirm(`¿Eliminar a ${athlete.displayName} de la lista de atletas? Esta acción quitará su ficha del sistema, pero no elimina su cuenta de Firebase Authentication ni sus reservas históricas.`);
+    if (!confirmed) return;
+    const result = await gymService.deleteAthleteProfile(athlete.uid);
+    if (result.success) {
+      setAthletes(list => list.filter(user => user.uid !== athlete.uid));
+      setActionFeedback(`${athlete.displayName} fue eliminado de la lista de atletas.`);
+    } else {
+      setActionFeedback(result.error || 'No se pudo eliminar el atleta.');
+    }
+    setTimeout(() => setActionFeedback(null), 5000);
+  };
 
   const handleAdjustTokens = async (athlete: UserProfile, delta: number) => {
     const reason = delta > 0 ? `Asignación manual por ${currentUser.displayName}` : 'Ajuste manual de créditos';
@@ -190,21 +204,30 @@ export const OwnerAdminPanel: React.FC<OwnerAdminPanelProps> = ({ currentUser, o
                 <div className="flex items-center gap-1">
                   <button
                     onClick={() => handleAdjustTokens(athlete, -1)}
-                    className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-slate-300 flex items-center justify-center"
+                    aria-label={`Restar un token a ${athlete.displayName}`}
+                    className="w-11 h-11 rounded-xl bg-slate-800 hover:bg-rose-500/20 text-slate-200 flex items-center justify-center"
                   >
-                    <Minus className="w-3.5 h-3.5" />
+                    <Minus className="w-5 h-5" />
                   </button>
                   <button
                     onClick={() => handleAdjustTokens(athlete, 1)}
-                    className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-emerald-500/20 text-slate-300 flex items-center justify-center"
+                    aria-label={`Sumar un token a ${athlete.displayName}`}
+                    className="w-11 h-11 rounded-xl bg-slate-800 hover:bg-emerald-500/20 text-slate-200 flex items-center justify-center"
                   >
-                    <Plus className="w-3.5 h-3.5" />
+                    <Plus className="w-5 h-5" />
                   </button>
                   <button
                     onClick={() => handleAdjustTokens(athlete, 8)}
-                    className="h-8 px-2 rounded-lg bg-emerald-500/20 text-emerald-300 text-[10px] font-black"
+                    className="h-11 px-3 rounded-xl bg-emerald-500/20 text-emerald-300 text-sm font-black"
                   >
                     +8
+                  </button>
+                  <button
+                    onClick={() => handleDeleteAthlete(athlete)}
+                    aria-label={`Eliminar a ${athlete.displayName}`}
+                    className="h-11 w-11 rounded-xl bg-rose-500/15 hover:bg-rose-500/30 text-rose-300 flex items-center justify-center"
+                  >
+                    <Trash2 className="w-5 h-5" />
                   </button>
                 </div>
               </div>

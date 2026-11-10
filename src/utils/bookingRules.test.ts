@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   GYM_SLOT_TIMES,
+  SATURDAY_SLOT_TIMES,
+  getGymSlotTimesForDate,
   MAX_SLOT_CAPACITY,
   canCancelWithoutPenalty,
   canBookSlot,
@@ -113,4 +115,18 @@ test('cancellation less than 60 minutes before penalizes athlete and does not re
   assert.equal(refundResult.refunded, false);
   assert.equal(refundResult.newTokens, 2);
   assert.equal(refundResult.status, 'cancelled_penalty');
+});
+
+
+test('weekend schedule only offers Saturday morning shifts and closes Sunday', () => {
+  assert.deepEqual([...getGymSlotTimesForDate('2026-11-14')], [...SATURDAY_SLOT_TIMES]);
+  assert.deepEqual([...getGymSlotTimesForDate('2026-11-15')], []);
+  assert.equal(isValidSlotTime('09:00', '2026-11-14'), true);
+  assert.equal(isValidSlotTime('11:00', '2026-11-14'), true);
+  assert.equal(isValidSlotTime('16:15', '2026-11-14'), false);
+  assert.equal(isValidSlotTime('09:00', '2026-11-15'), false);
+});
+
+test('weekday schedule remains unchanged', () => {
+  assert.deepEqual([...getGymSlotTimesForDate('2026-11-10')], [...GYM_SLOT_TIMES]);
 });

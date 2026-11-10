@@ -78,11 +78,7 @@ export default function App() {
       if (cancelled) return;
       const u = gymService.getCurrentUser();
       if (u) {
-        setCurrentUser(prev => {
-          if (!prev) return u;
-          if (prev.tokens === u.tokens && prev.uid === u.uid) return prev;
-          return { ...prev, ...u };
-        });
+        setCurrentUser(prev => prev ? { ...prev, ...u } : u);
       }
     };
     pull();

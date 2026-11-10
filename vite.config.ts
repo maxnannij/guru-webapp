@@ -16,7 +16,7 @@ export default defineConfig(() => {
           id: '/',
           name: 'Gurú Box - Turnos & WOD',
           short_name: 'Gurú Box',
-          description: 'Webapp PWA para reserva de turnos, cupos, gestión de tokens y WOD para atletas y dueños.',
+          description: 'Webapp PWA para reserva de turnos, cupos, gestión de tokens y WOD para atletas y coaches.',
           theme_color: '#050811',
           background_color: '#020617',
           display: 'standalone',

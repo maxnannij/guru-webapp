@@ -343,18 +343,8 @@ class GymService {
           profile = { ...(snap.data() as UserProfile), uid: cred.user.uid };
           this.users.push(profile);
         } else {
-          profile = {
-            uid: cred.user.uid,
-            email: cleanId,
-            displayName: cleanId.split('@')[0],
-            role: 'athlete',
-            tokens: 0,
-            phone: '',
-            avatarUrl: '',
-            createdAt: new Date().toISOString(),
-          };
-          await setDoc(doc(db, 'users', profile.uid), this.cleanObject(profile), { merge: true });
-          this.users.push(profile);
+          await signOut(auth);
+          return { success: false, error: 'Esta cuenta ya no tiene una ficha activa en Gurú Box. Contactá a la administración.' };
         }
       }
       this.currentUserId = profile.uid;
